@@ -47,7 +47,7 @@ return [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '172.16.11.209'),
-            'port' => env('DB_PORT', '3306'),
+            'port' => env('DB_PORT', '4306'),
             'database' => env('DB_DATABASE', 'audit_sampling'),
             'username' => env('DB_USERNAME', 'ccdmis_app'),
             'password' => env('DB_PASSWORD', 'ccdmis@019014'),

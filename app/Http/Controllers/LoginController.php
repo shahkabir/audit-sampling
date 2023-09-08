@@ -36,6 +36,7 @@ class LoginController extends Controller
 
             $request->session()->put('userType',$userType[0]->userType);
             $request->session()->put('name',$userType[0]->name);
+            $request->session()->put('email',$request->email);
 
             $data = $request->session()->all();
             //dd($data);
@@ -49,7 +50,7 @@ class LoginController extends Controller
     {
     	Auth::logout();
         //Destroy session
-        session()->forget(['userType', 'name']);
+        session()->forget(['userType', 'name', 'email']);
         session()->flush();
 
     	return redirect()->route('login');

@@ -3,7 +3,7 @@
 
 <div class="content-wrapper">
     <!-- Content Header (Page header) -->
-    <section class="content-header">
+    {{-- <section class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-6">
@@ -17,14 +17,18 @@
           </div>
         </div>
       </div><!-- /.container-fluid -->
-    </section>
-
+    </section> --}}
+   @if (session('status'))
+        <div class="alert alert-success">
+            {{ session('status') }}
+        </div>
+    @endif
   <!-- Main content -->
   <section class="content">
     <!-- Default box -->
     <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Projects</h3>
+          <h3 class="card-title">Update Sampling Criteria</h3>
 
           <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
@@ -61,7 +65,7 @@
                 @php
                 $i=1;
                 @endphp
-                
+                {{-- {{dd($parameters)}} --}}
                 @foreach ($parameters as $data)
                   <tr>
                     <td>
@@ -82,15 +86,20 @@
                       </td>
                       
                       <td class="project-actions text-right">
-                          {{-- <a class="btn btn-primary btn-sm" href="#">
-                              <i class="fas fa-folder">
-                              </i>
-                              View
-                          </a> --}}
+                          
+
+                          
+                            @if($data->criteriaType == 'DURATION WISE')
+                            <button type="button" class="btn btn-dark btn-sm" data-toggle="modal" value="{{$data->samplingID}}">
+                              <i class="fas fa-pencil-alt"> </i>UPDATE RANGE
+                            </button>
+                            @endif
+
+                            
+                          
                           <a class="btn btn-info btn-sm" href="update-sampling/{{$data->samplingID}}">
-                              <i class="fas fa-pencil-alt">
-                              </i>
-                              Edit
+                              <i class="fas fa-pencil-alt"></i>
+                              EDIT
                           </a>
                           {{-- <a class="btn btn-danger btn-sm" href="#">
                               <i class="fas fa-trash">
@@ -167,4 +176,101 @@
     <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
+
+  <div class="modal fade" id="modal-lg">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">UPDATE RANGE</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+       <form action="{{ url('update-parameters') }}" method="POST">
+        @csrf
+        @method('PUT')
+
+        <div class="modal-body">
+
+          <div class="form-group mb-3">
+            <label for="">Sampling Criteria</label>
+            <input type="text" name="wc" id="wc" class="form-control" readonly/>
+            <input type="hidden" name="samplingCriteriaID" id="samplingCriteriaID" class="form-control" readonly/>
+          </div>
+          
+          {{-- <div class="form-group mb-3">
+            <label for="">QUERY</label>
+            <input type="text" name="query" id="query" class="form-control" readonly/>
+          </div> --}}
+          <table style="">
+            <tr>
+              <td></td>
+              <td style="text-align: center"><label for="">MIN</label></td>
+              <td></td>
+              <td style="text-align: center"><label for="">MAX</label></td>
+            </tr>
+            <tr>
+              <div class="form-group mb-3">
+                <td><label for="">CURRENT VALUE(sec):</label></td>
+                <td><input type="text" name="mincurrent" id="mincurrent" class="form-control" readonly/></td>
+                <td>&lt;d&le;</td>
+                <td><input type="text" name="maxcurrent" id="maxcurrent" class="form-control" readonly/></td>
+              </div>
+            </tr>
+            <tr>
+              <div class="form-group mb-3">
+                <td><label for="">NEW VALUE(sec):</label></td>
+                <td><input type="text" name="minnew" id="minnew" class="form-control" required/></td>
+                <td>&lt;d&le;</td>
+                <td><input type="text" name="maxnew" id="maxnew" class="form-control" required/></td>
+              </div>
+            </tr>
+          </table>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+       </form>
+
+      </div>
+      <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+  </div>
+  <!-- /.modal -->
+
+  <!-- page specific script -->
+  <script>
+      $(document).ready(function(){
+
+          $(document).on('click','.btn-dark',function(){
+              var id = $(this).val();
+              //alert(id);
+
+              $("#modal-lg").modal('show');
+
+              $.ajax({
+                  type: "GET",
+                  url: "/parameter-get/"+id,
+                  success: function (response){
+                      //console.log(response);
+
+                      $('#wc').val(response[0].criteria);
+                      $('#samplingCriteriaID').val(response[0].samplingCriteriaID);
+                      $('#mincurrent').val(response[0].min);
+                      $('#maxcurrent').val(response[0].max);
+                      
+                      //console.log(response[0].target_per);
+                      // var target = response.results[0].target_per;
+                      // if(target == null)
+                      //     target = '';
+                      
+                      // $('#current').val(target);
+                  }
+              });
+          });
+    })
+  </script>
   @endsection

@@ -35,11 +35,11 @@
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
-          <li class="nav-item menu-open">
+          <li class="nav-item">
             <a href="#" class="nav-link active">
               <i class="nav-icon fas fa-tachometer-alt"></i>
               <p>
-                Main Menu
+                INBOUND
                 <i class="right fas fa-angle-left"></i>
               </p>
             </a>
@@ -56,6 +56,42 @@
                   <p>Update Parameters</p>
                 </a>
               </li>
+              <li class="nav-item">
+                <a href="/update-wc" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Update WorkCode %</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <li class="nav-item">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>
+                OUTBOUND
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/generate-outbound" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Sample Generation</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/parameter-change-outbound" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Update Parameters</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/parameter-change-outbound-agent" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Update Audit per Agent</p>
+                </a>
+              </li>
               {{-- <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
@@ -64,6 +100,49 @@
               </li> --}}
             </ul>
           </li>
+
+          <li class="nav-item">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>
+                Reports
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/report-assigned-calls" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Assigned Calls Summary</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/report-assigned-calls-details" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Assigned Calls Details</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/target-vs-generated" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Target vs Generated Count</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/source-data" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Source Data Status</p>
+                </a>
+              </li>
+              {{-- <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Inactive Page</p>
+                </a>
+              </li> --}}
+            </ul>
+          </li>
+
           <!-- <li class="nav-item">
             <a href="#" class="nav-link">
               <i class="nav-icon fas fa-th"></i>

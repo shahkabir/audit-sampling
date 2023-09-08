@@ -19,7 +19,7 @@
       </div><!-- /.container-fluid -->
     </div>
     <!-- /.content-header -->
-
+    
     <form name="generateSample" action="{{URL::to('generate-sampling')}}" method="post">
       @csrf
     <!-- Main content -->
@@ -39,7 +39,7 @@
                 
                  <!-- Date range -->
                  <div class="form-group">
-                  <label>Date Range:</label>
+                  <label>Date Range</label>
 
                   <div class="input-group">
                     <div class="input-group-prepend">
@@ -55,7 +55,8 @@
 
                     <div class="row">
                       <div class="col-3">
-                        <label>Audit Target</label>
+                        <label>Audit per Day</label>
+                        {{-- Audit Target --}}
                       </div>
                       
                       <div class="col-3">
@@ -67,26 +68,27 @@
                       </div>
 
                       <div class="col-3">
-                        <label>Audit per Day</label>
+                        <label>Audit Target</label>
+                        {{-- Audit per Day --}}
                       </div>
-                  </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-3">
-                          <input type="text" class="form-control" id="audit-target" name="audit-target" value="" placeholder="Audit Target">
+                          <input type="text" class="form-control" id="audit-per-day" name="audit-target" value="" placeholder="Audit per Day" readonly>
                           {{--  --}}
                         </div>
                         
                         <div class="col-3">
-                          <input type="text" class="form-control" id="no-of-agent" value="" name="no-of-agent" placeholder="No. Of Agent">
+                          <input type="text" class="form-control" id="no-of-agent" value="" name="no-of-agent" placeholder="No. Of Agent" required>
                         </div>
 
                         <div class="col-3">
-                          <input type="text" class="form-control" id="audit-per-agent" value="" placeholder="Audit per Agent">
+                          <input type="text" class="form-control" id="audit-per-agent" name="audit-per-agent" value="" placeholder="Audit per Agent" required>
                         </div>
 
                         <div class="col-3">
-                          <input type="text" class="form-control" id="audit-per-day" value="" placeholder="Audit per Day">
+                          <input type="text" class="form-control" id="audit-target" value="" placeholder="Audit Target" readonly>
                         </div>
                     </div>
                     
@@ -110,14 +112,15 @@
                       </div>
                     </div>
 
+
                     <div class="row">
 
                       <div class="col-3">
-                        <input type="text" class="form-control" id="mon" value="" placeholder="Month">
+                        <input type="text" class="form-control" id="mon" value="{{ date('F') }}" placeholder="Month" readonly>
                       </div>
 
                       <div class="col-3">
-                        <input type="text" class="form-control" id="day" value="" placeholder="Day">
+                        <input type="text" class="form-control" id="day" value="{{ date('d') }}" placeholder="Day">
                       </div>
 
                       <div class="col-3">
@@ -126,6 +129,62 @@
 
                       <button type="submit" class="btn btn-primary">Generate</button>
 
+                    </div>
+
+                    <h1></h1>
+
+                    <div class="row">
+                      <div class="col-3">
+                      </div>
+
+                      <div class="col-3">
+                      </div>
+
+                      <div class="col-3">
+                        <label>Total CUSTOM TARGET(%)</label>
+                      </div>
+
+                    </div>
+
+                    <div class="row">
+                      <div class="col-3">
+                        <div class="custom-control custom-switch">
+                          <input type="checkbox" id="setZero" class="custom-control-input"/>
+                          <label class="custom-control-label" for="setZero">Set CUSTOM TARGET=0%</label>
+                        </div>
+                      </div>
+
+                      <div class="col-3">
+                        <div class="custom-control custom-switch">
+                          <input type="checkbox" id="setfromAudit" class="custom-control-input"/>
+                          <label class="custom-control-label" for="setfromAudit">Set All from AUDIT TARGET(%)</label>
+                        </div>
+                      </div>
+
+                      <div class="col-3">
+                        <input type="text" class="form-control" id="totalCustom" value="" readonly>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-12">
+                          @if (session('success'))
+                            <div class="alert alert-success">
+                                {{ session('success') }}
+                            </div>
+                          @endif
+
+                          @if ($errors->any())
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                          @endif
+
+                      </div>
                     </div>
                   </div>
 
@@ -137,207 +196,183 @@
           <div class="col-lg-4">
             <div class="card">
               <div class="card-body">
-                  <table border=0 cellpadding=0 cellspacing=0 width=382 style='border-collapse:
-                          collapse;table-layout:fixed;width:286pt'>
-                          <col width=64 style='width:48pt'>
-                          <col width=120 style='mso-width-source:userset;mso-width-alt:4266;width:90pt'>
-                          <col width=102 style='mso-width-source:userset;mso-width-alt:3612;width:76pt'>
-                          <col width=96 style='mso-width-source:userset;mso-width-alt:3413;width:72pt'>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 width=64 style='height:14.4pt;width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td colspan=3 class=xl75 width=318 style='border-right:.5pt solid #BF8F00;
-                          width:238pt'>Outcome Wise Sampling</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl74 width=120 style='width:90pt'>CRITERIA</td>
-                          <td class=xl74 width=102 style='border-left:none;width:76pt'>%</td>
-                          <td class=xl74 width=96 style='border-left:none;width:72pt'>COUNT</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl71>{{$parameters[0]->samplingCriteria}}</td>
-                          <td class=xl72 style='border-left:none'><input type='text' value='{{$parameters[0]->sampling_value_in_percent}}' id='info-per' name='' size='1' disabled></td>
-                          <td class=xl73 style='border-left:none'><input type='text' value='0' id='info-val' name='info-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=37 style='height:27.6pt'>
-                          <td height=37 style='height:27.6pt'></td>
-                          <td class=xl70 width=120 style='border-top:none;width:90pt'>{{$parameters[1]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[1]->sampling_value_in_percent}}' id='sad-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='sad-val' name='sad-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[2]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[2]->sampling_value_in_percent}}' id='comp-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='comp-val' name='comp-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[3]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[3]->sampling_value_in_percent}}' id='bald-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='bald-val' name='bald-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[4]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[4]->sampling_value_in_percent}}' id='cfl-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='cfl-val' name='cfl-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td class=xl68></td>
-                          <td class=xl65 style='border-top:none'>Total</td>
-                          <td class=xl78 style='border-top:none;border-left:none'><input type='text' value='0' id='out-total' name='out-total' size='4' readonly></td>
-                          </tr>
-                          <![if supportMisalignedColumns]>
-                          <tr height=0 style='display:none'>
-                          <td width=64 style='width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <![endif]>
-                          </table>
 
+                <table class="table table-bordered">
+                  <thead>
+                    <tr style="background-color:#ffb38a">
+                      <th>CRITERIA</th>
+                      <th>%</th>
+                      <th style="width: 40px">COUNT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      
+                      <td>{{$parameters[5]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[5]->sampling_value_in_percent}}' id='sc-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='sc-val' name='sc-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+                      
+                      <td>{{$parameters[6]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[6]->sampling_value_in_percent}}' id='mc-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='mc-val' name='mc-val' size='3' readonly></td>
+                    </tr>
 
-                          <table border=0 cellpadding=0 cellspacing=0 width=382 style='border-collapse:
-                          collapse;table-layout:fixed;width:286pt'>
-                          <col width=64 style='width:48pt'>
-                          <col width=120 style='mso-width-source:userset;mso-width-alt:4266;width:90pt'>
-                          <col width=102 style='mso-width-source:userset;mso-width-alt:3612;width:76pt'>
-                          <col width=96 style='mso-width-source:userset;mso-width-alt:3413;width:72pt'>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 width=64 style='height:14.4pt;width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td colspan=3 class=xl75 width=318 style='border-right:.5pt solid #BF8F00;
-                          width:238pt'>Duration Wise Sampling</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl74 width=120 style='width:90pt'>CRITERIA</td>
-                          <td class=xl74 width=102 style='border-left:none;width:76pt'>%</td>
-                          <td class=xl74 width=96 style='border-left:none;width:72pt'>COUNT</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl71>{{$parameters[5]->samplingCriteria}}</td>
-                          <td class=xl72 style='border-left:none'><input type='text' value='{{$parameters[5]->sampling_value_in_percent}}' id='sc-per' name='' size='1' disabled></td>
-                          <td class=xl73 style='border-left:none'><input type='text' value='0' id='sc-val' name='sc-val' size='3' readonly></td></td>
-                          </tr>
-                          <tr height=37 style='height:27.6pt'>
-                          <td height=37 style='height:27.6pt'></td>
-                          <td class=xl70 width=120 style='border-top:none;width:90pt'>{{$parameters[6]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[6]->sampling_value_in_percent}}' id='mc-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='mc-val' name='mc-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[7]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[7]->sampling_value_in_percent}}' id='lc-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='lc-val' name='lc-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[8]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[8]->sampling_value_in_percent}}' id='uc-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='uc-val' name='uc-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td class=xl68></td>
-                          <td class=xl65 style='border-top:none'>Total</td>
-                          <td class=xl78 style='border-top:none;border-left:none'><input type='text' value='0' id='dur-total' name='dur-total' size='4' readonly></td>
-                          </tr>
-                          <![if supportMisalignedColumns]>
-                          <tr height=0 style='display:none'>
-                          <td width=64 style='width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <![endif]>
-                          </table>
+                    <tr>
+                      <td>{{$parameters[7]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[7]->sampling_value_in_percent}}' id='lc-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='lc-val' name='lc-val' size='3' readonly></td>
+                    </tr>
 
-                          <table border=0 cellpadding=0 cellspacing=0 width=382 style='border-collapse:
-                          collapse;table-layout:fixed;width:286pt'>
-                          <col width=64 style='width:48pt'>
-                          <col width=120 style='mso-width-source:userset;mso-width-alt:4266;width:90pt'>
-                          <col width=102 style='mso-width-source:userset;mso-width-alt:3612;width:76pt'>
-                          <col width=96 style='mso-width-source:userset;mso-width-alt:3413;width:72pt'>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 width=64 style='height:14.4pt;width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td colspan=3 class=xl75 width=318 style='border-right:.5pt solid #BF8F00;
-                          width:238pt'>Segment Wise Sampling</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl74 width=120 style='width:90pt'>CRITERIA</td>
-                          <td class=xl74 width=102 style='border-left:none;width:76pt'>%</td>
-                          <td class=xl74 width=96 style='border-left:none;width:72pt'>COUNT</td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl71 width=120 style='border-top:none;width:90pt'>{{$parameters[9]->samplingCriteria}}</td>
-                          <td class=xl72 style='border-left:none'><input type='text' value='{{$parameters[9]->sampling_value_in_percent}}' id='pb-per' name='' size='1' disabled></td>
-                          <td class=xl73 style='border-left:none'><input type='text' value='0' id='pb-val' name='pb-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=37 style='height:27.6pt'>
-                          <td height=37 style='height:27.6pt'></td>
-                          <td class=xl70 width=120 style='border-top:none;width:90pt'>{{$parameters[10]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[10]->sampling_value_in_percent}}' id='gr-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='gr-val' name='gr-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[11]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[11]->sampling_value_in_percent}}' id='sl-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='sl-val' name='sl-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[12]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[12]->sampling_value_in_percent}}' id='bl-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='bl-val' name='bl-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=19 style='height:14.4pt'>
-                          <td height=19 style='height:14.4pt'></td>
-                          <td class=xl69 style='border-top:none'>{{$parameters[13]->samplingCriteria}}</td>
-                          <td class=xl66 style='border-top:none;border-left:none'><input type='text' value='{{$parameters[13]->sampling_value_in_percent}}' id='ot-per' name='' size='1' disabled></td>
-                          <td class=xl67 style='border-top:none;border-left:none'><input type='text' value='0' id='ot-val' name='ot-val' size='3' readonly></td>
-                          </tr>
-                          <tr height=21 style='height:15.6pt'>
-                          <td height=21 style='height:15.6pt'></td>
-                          <td class=xl68></td>
-                          <td class=xl65 style='border-top:none'>Total</td>
-                          <td class=xl78 style='border-top:none;border-left:none'><input type='text' value='0' id='seg-total' name='seg-total' size='4' readonly></td>
-                          </tr>
-                          <![if supportMisalignedColumns]>
-                          <tr height=0 style='display:none'>
-                          <td width=64 style='width:48pt'></td>
-                          <td width=120 style='width:90pt'></td>
-                          <td width=102 style='width:76pt'></td>
-                          <td width=96 style='width:72pt'></td>
-                          </tr>
-                          <![endif]>
-                          </table>
+                    <tr>
+                      <td>{{$parameters[8]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[8]->sampling_value_in_percent}}' id='uc-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='uc-val' name='uc-val' size='3' readonly></td>
+                    </tr>
+
+                    <tr>
+                      
+                      <td colspan="2">Total</td>
+                      
+                      <td><input type='text' value='0' id='dur-total' name='dur-total' size='4' readonly></td>
+                    </tr>
+                    
+                  </tbody>
+                </table>
+
+                <table class="table table-bordered">
+                  <thead>
+                    {{-- <tr colspan="3">OUTCOME WISE</tr> --}}
+                    <tr style="background-color: #ff9248">
+                      <th>CRITERIA</th>
+                      <th>%</th>
+                      <th style="width: 40px">COUNT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{{$parameters[0]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[0]->sampling_value_in_percent}}' id='info-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='info-val' name='info-val' size='3' readonly></td></td>
+                    </tr>
+                    <tr>
+                      
+                      <td>{{$parameters[1]->samplingCriteria}}</td>
+                      <td>
+                        
+                          <input type='text' value='{{$parameters[1]->sampling_value_in_percent}}' id='sad-per' name='' size='1' disabled>
+                        
+                      </td>
+                      <td><input type='text' value='0' id='sad-val' name='sad-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+                      <td>{{$parameters[2]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[2]->sampling_value_in_percent}}' id='comp-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='comp-val' name='comp-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+
+                      <tr>
+                        <td>{{$parameters[3]->samplingCriteria}}</td>
+                        <td>
+                          <input type='text' value='{{$parameters[3]->sampling_value_in_percent}}' id='bald-per' name='' size='1' disabled>
+                        </td>
+                        <td><input type='text' value='0' id='bald-val' name='bald-val' size='3' readonly></td>
+                      </tr>
+                      <tr>
+                      
+                      <td>{{$parameters[4]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[4]->sampling_value_in_percent}}' id='cfl-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='cfl-val' name='cfl-val' size='3' readonly></td>
+                    </tr>
+
+                    <tr>
+                      
+                      <td colspan="2">Total</td>
+                      
+                      <td><input type='text' value='0' id='out-total' name='out-total' size='4' readonly></td>
+                    </tr>
+
+                  </tbody>
+                </table>
+
+                
+
+                <table class="table table-bordered">
+                  <thead>
+                    <tr style="background-color:#ffd7b5">
+                      <th>CRITERIA</th>
+                      <th>%</th>
+                      <th style="width: 40px">COUNT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      
+                      <td>{{$parameters[9]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[9]->sampling_value_in_percent}}' id='pb-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='pb-val' name='pb-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+                      
+                      <td>{{$parameters[10]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[10]->sampling_value_in_percent}}' id='gr-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='gr-val' name='gr-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+                      
+                      <td>{{$parameters[11]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[11]->sampling_value_in_percent}}' id='sl-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='sl-val' name='sl-val' size='3' readonly></td>
+                    </tr>
+                    <tr>
+                      <td>{{$parameters[12]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[12]->sampling_value_in_percent}}' id='bl-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='bl-val' name='bl-val' size='3' readonly></td>
+                    </tr>
+
+                    <tr>
+                      <td>{{$parameters[13]->samplingCriteria}}</td>
+                      <td>
+                        <input type='text' value='{{$parameters[13]->sampling_value_in_percent}}' id='ot-per' name='' size='1' disabled>
+                      </td>
+                      <td><input type='text' value='0' id='ot-val' name='ot-val' size='3' readonly></td>
+                    </tr>
+
+                    <tr>
+                      
+                      <td colspan="2">Total</td>
+                      
+                      <td><input type='text' value='0' id='seg-total' name='seg-total' size='4' readonly></td>
+                    </tr>
+
+                  </tbody>
+                </table>
+
+                  
               </div>
             </div>
           </div>
@@ -362,9 +397,12 @@
                     <th>CODE</th>
                     {{-- <th>CATEGORY</th> --}}
                     <th>QUERY</th>
-                    <th>TOTAL(01 till Today)</th>
+                    <th>TOTAL(01 till Yesterday)</th>
                     <th>AUDIT TARGET(%)</th>
-                    <th>MONTHLY TARGET</th>
+                    <th>CUSTOM TARGET(%)</th>
+                    {{--  --}}
+                    <th>DAILY TARGET</th>
+
                     <th>MTD Target</th>
                     <th>MTD Done</th>
                     <th>Pending</th>
@@ -378,11 +416,13 @@
                     <td>{{$wc->query}}</td>
                     <td>{{$wc->count_till_date}}</td>
                     <td><input type='text' class="form-control" name='' id='{{'atp-'.$wc->wc}}' value='{{$wc->audit_target_in_per}}' size='5' disabled /></td>
-                    {{-- {{'n-'.$wc->wc}} --}}
-                    <td><input type='text' class="form-control" name='{{'wc-'.$wc->wc}}' id='{{'mt-'.$wc->wc}}' value='' size='5' readonly/></td>
-                    <td><input type='text' class="form-control" name='' id='{{'mtt-'.$wc->wc}}' value='' size='5' disabled /></td>
-                    <td><input type='text' class="form-control" name='' id='' value='' size='5' disabled /></td>
-                    <td><input type='text' class="form-control" name='' id='' value='' size='5' disabled /></td>
+                    <td><input type='text' class="form-control" name='{{'catp-'.$wc->wc}}' id='{{'catp-'.$wc->wc}}' value="{{$wc->target_per}}" size='4'/></td>
+                    
+                    <td><input type='text' class="form-control" name='{{'wc-'.$wc->wc}}' id='{{'mt-'.$wc->wc}}' value='' size='3' readonly/></td>
+
+                    <td><input type='text' class="form-control" name='' id='{{'mtt-'.$wc->wc}}' value='' size='5' readonly/></td>
+                    <td><input type='text' class="form-control" name='' id='' value='' size='3' readonly /></td>
+                    <td><input type='text' class="form-control" name='' id='' value='' size='3' readonly /></td>
                   </tr>
                   @endforeach
                   
@@ -428,8 +468,6 @@
   <!-- Page specific script -->
 <script>
   $(function () {
-
-
     $("#example1").DataTable({
       pageLength: -1,
       scrollX: true,
@@ -444,16 +482,16 @@
 
       //"order": false,
 	    bLengthChange: false,
-      scrollY: "700px",
+      scrollY: "750px",
 
       columnDefs: [
-            { "width": "10px", "targets": "1" }
+            { "width": "12px", "targets": "1" }
         ],
 
 	  //"bAutoWidth": false,
 
-      // "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-    });//.buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
+      "buttons": ["copy", "csv", "excel", "pdf"]
+    }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
 
 
     // $('#example1').DataTable({
@@ -468,11 +506,17 @@
   
 
     //Code for sample calculation
-    $('#audit-target').on('input',function(){
-        //var constant = 300;
-        var auditTarget = $(this).val();
+    $('#audit-target, #mtd').on('input',function(){
+        
+        //var auditTarget = $(this).val();
+        var monthlyAuditTarget = $('#audit-target').val();
+        var auditTargetPerDay = Math.round(monthlyAuditTarget/30); //$('#day').val()
+        $('#audit-per-day').val(auditTargetPerDay);
+
+        var auditTarget = auditTargetPerDay;
+
         //console.log(auditTarget);
-        //var val = ((($('#info-per').val()))/constant)*auditTarget;
+        
 
         $('#info-val').val(getCount($('#info-per').val(), auditTarget));
         $('#sad-val').val(getCount($('#sad-per').val(),auditTarget));
@@ -515,13 +559,16 @@
           );
 
 
-        //Update Monthly Target input field
+        //Update Daily Target input field
         // Selector for input fields to be updated
         var inputFieldsToUpdate = $("input[id^='mt-']");
         var inputFieldsToUpdateMTD = $("input[id^='mtt-']");
+        var inputFieldsToUpdateCustomTarget = $("input[id^='catp-']");
 
         var day = $('#day').val();
         var mtd = $('#mtd').val();
+
+        //var monthToDate = 
 
         // Selector for corresponding input fields with new values
         var correspondingInputFields = $("input[id^='atp-']");
@@ -534,16 +581,113 @@
             // Use the index to identify the corresponding input field to update
             var inputFieldToUpdate = inputFieldsToUpdate.eq(index);
             var inputFieldToUpdateMTD = inputFieldsToUpdateMTD.eq(index);
-            
-            // Update the value of the input field
-            var monthlyTarget = Math.round((newValue/100)*auditTarget);
+            var inputFieldToUpdateCustomTarget = inputFieldsToUpdateCustomTarget.eq(index);
+
+            if(jQuery.isNumeric(inputFieldToUpdateCustomTarget.val()))
+            {
+              var monthlyTarget = Math.round((inputFieldToUpdateCustomTarget.val()/100)*auditTarget);
+            }else{
+              // Update the value of the input field
+              var monthlyTarget = Math.round((newValue/100)*auditTarget);
+            }
+
             //console.log('monthlyTarget:'+monthlyTarget);
 
             inputFieldToUpdate.val(monthlyTarget);
-            inputFieldToUpdateMTD.val((Math.round(monthlyTarget/day)*mtd));
+            //inputFieldToUpdateMTD.val((Math.round(monthlyTarget/day)*mtd));
+            inputFieldToUpdateMTD.val(monthlyTarget*mtd);
+          });
+    });
+
+    
+        //Custom Target
+        var totalCustomInput = $("#totalCustom");
+        var customTargetFields = $("input[id^='catp-']");
+
+          customTargetFields.on('input',function(){
+            
+            var auditTarget = $('#audit-per-day').val();
+
+            var catpId = $(this).attr('id');
+            var catpValue = parseFloat($(this).val());
+            var mtId = catpId.replace('catp-', 'mt-');
+            var updatedValue = Math.round((catpValue/100) * auditTarget);
+            //console.log('updatedValue:'+updatedValue);
+
+            if(!isNaN(updatedValue)){
+              $('#' + mtId).val(updatedValue);
+            }else{
+              //$('#audit-per-day').trigger('input');
+              var auditTargetPer = parseFloat($(this).closest('tr').find('input[id^="atp-"]').val());
+              //console.log('auditTarget:'+auditTargetPer);
+              $('#' + mtId).val(Math.round((auditTargetPer/100) * auditTarget));
+            }
+
+              //Now set the total in custom field
+              var total = 0;
+              customTargetFields.each(function() {
+                var value = parseFloat($(this).val());
+                if (!isNaN(value)) {
+                  total += value;
+                }
+
+              });
+
+              totalCustomInput.val(total);
           });
 
+        
+        
+
+    $('#no-of-agent').on('input',function(){
+
+      var noOfAgent = $('#no-of-agent').val();
+      var auditPerAgent = $('#audit-per-agent').val();
+
+      $('#audit-target').val(noOfAgent*auditPerAgent);
+
+      $('#audit-target').trigger('input');
+
+      $('#audit-per-day').trigger('input');
+
     });
+
+
+    $('#audit-per-agent').on('input',function(){
+
+      var noOfAgent = $('#no-of-agent').val();
+      var auditPerAgent = $('#audit-per-agent').val();
+
+      $('#audit-target').val(noOfAgent*auditPerAgent);
+
+      $('#audit-target').trigger('input');
+
+      $('#audit-per-day').trigger('input');
+
+    });
+    
+    //Set Custom Target to 0
+    $("#setZero").on("change", function() {
+      if ($(this).is(":checked")) {
+        $("input[id^='catp-']").val(0);
+        $('#totalCustom').val(0);
+
+        $('#audit-target').trigger('input');
+        
+      }
+    });
+
+    //Set Custom Target to blank
+    $("#setfromAudit").on("change", function() {
+      if ($(this).is(":checked")) {
+        $("input[id^='catp-']").val('');
+        $('#totalCustom').val('');
+
+        $('#audit-target').trigger('input');
+        
+      }
+    });
+
 
     function getCount(percent, auditTarget)
     {

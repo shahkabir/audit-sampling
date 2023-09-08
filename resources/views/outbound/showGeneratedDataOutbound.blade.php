@@ -20,7 +20,7 @@
    </div> --}}
    <!-- /.content-header -->
 
-   <form name="generateSample" action="{{URL::to('assign-to-users')}}" method="post">
+   <form name="generateSample" action="{{URL::to('assign-to-users-outbound')}}" method="post" id="generateSample">
      @csrf
    <!-- Main content -->
    <div class="content">
@@ -52,15 +52,33 @@
 
                           <div class="row">
                             <div class="col-12">
-                              @foreach ($users as $user)
-                                <input type="checkbox" name="users[]" value="{{ $user->user_id }}" checked> {{ $user->user_id }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                              @endforeach
+
+                            <table>
+                                <tr>
+                                    <td></td>
+                                    <td>Agent</td>
+                                    <td>Calls to be assigned</td>
+                                </tr>
+
+                                
+                                @foreach ($users as $user)
+                                <tr>
+                                    <td><input type="checkbox" name="users[]" value="{{ $user->userid }}" class="user-checkbox" checked>  </td>
+                                    <td>{{ $user->userid }}</td>
+                                    <td><input type='text' class="form-control user-value" value="" id='' name="user_values[{{$user->userid}}]" data-userid="{{$user->userid}}"></td>
+                                </tr>
+                                @endforeach
+                                
+                            </table>
+
+                            {{-- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --}}
+                             
                             </div>
                           </div>
 
                           <h1></h1>
 
-                          <div class="row">
+                          {{-- <div class="row">
                             <div class="col-12">
                               <label>Set Fixed Calls</label>
                             </div>
@@ -70,17 +88,26 @@
                             <div class="col-3">
                               <input type='text' class="form-control" value='' id='fixedCalls' name='fixedCalls'>
                             </div>
-                          </div>
+                          </div> --}}
 
                           <h1></h1>
 
+                          <div class="col-3">
+                            <div class="custom-control custom-switch">
+                              <input type="checkbox" name="isRandom" id="isRandom" class="custom-control-input"/>
+                              <label class="custom-control-label" for="isRandom">Assign Randomly</label>
+                            </div>
+                          </div>
+
                           <div class="form-group">
                               <div class="row">
+                                
+
                                 <button type="submit" class="btn btn-primary">ASSIGN TO USERS</button>
-                                <input type="hidden" value="{{$sampleHistoryID}}" name="sampleHistoryID">
+                                {{-- <input type="hidden" value="{{$sampleHistoryID}}" name="sampleHistoryID"> --}}
                               </div>
                           </div>
-                  {{-- {{dd($selectedSample)}} --}}
+                  {{-- {{ dd($selectedSample) }} --}}
             </div>
           </div>
          </div>
@@ -99,42 +126,32 @@
                  <thead>
                  <tr>
                    <th>TABLEID</th>
-                   <th>ID</th>
-                   <th>CALL DATE</th>
-                   <th>CALLID</th>
+                   <th>PARENTID</th>
+                   <th>SO DATE</th>
+                   <th>SO TICKET</th>
                    <th>MSISDN</th>
-                   <th>DURATION</th>
-                   <th>CODE</th>
+                   <th>STATUS</th>
+                   <th>CHANNEL(SOURCE)</th>
                    <th>CATEGORY</th>
-                   <th>QUERY</th>
-                   <th>OUTCOME</th>
-                   <th>UCID_CONNECT</th>
-                   <th>SKILLNO</th>
-                   <th>TALKTIME</th>
-                   {{-- <th>WRAPUPCODE</th> --}}
-                   <th>ANSLOGIN</th>
-                   <th>AGENTNAME</th>                  
+                   <th>SUB CATEGORY</th>
+                   <th>SO OPENDATE</th>
+                   <th>ALTERNATE CONTACT</th>
                  </tr>
                  </thead>
                  <tbody>
                    @foreach ($selectedSample as $ss)
                  <tr>
+                   <td>{{$ss->tableID}}</td>
                    <td>{{$ss->parentID}}</td>
+                   <td>{{$ss->reportdate}}</td>
                    <td>{{$ss->ID}}</td>
-                   <td>{{ $ss->{'START TIME'} }}</td>
-                   <td>{{'#'.str_pad($ss->CALLID,20,'0',STR_PAD_LEFT)}}</td>
                    <td>{{$ss->MSISDN}}</td>
-                   <td>{{$ss->DURATION}}</td>
-                   <td>{{$ss->CODE}}</td>
+                   <td>{{$ss->STATUS}}</td>
+                   <td>{{$ss->SOURCE}}</td>
                    <td>{{$ss->CATEGORY}}</td>
-                   <td>{{$ss->QUERY}}</td>
-                   <td>{{$ss->OUTCOME}}</td>
-                   <td>{{'#'.$ss->UCID_CONNECT}}</td>
-                   <td>{{$ss->SKILLNO}}</td>
-                   <td>{{$ss->TALKTIME}}</td>
-                   {{-- <td>{{$ss->WRAPUPCODE}}</td> --}}
-                   <td>{{$ss->ANSLOGIN}}</td>
-                   <td>{{$ss->{'CREATED BY'} }}</td>
+                   <td>{{$ss->SUBCATEGORY }}</td>
+                   <td>{{$ss->OPENDATE }}</td>
+                   <td>{{$ss->ALTERNATECONTACT }}</td>
                  </tr>
                  @endforeach
                  
@@ -214,7 +231,52 @@
    //   "autoWidth": false,
    //   "responsive": true,
    // });
-   
+  
+  $('#generateSample').submit(function(event){
+    
+      var isRandomChecked = $('#isRandom').is(':checked');
+      if(!isRandomChecked) 
+      {
+        var checked = false;
+        var valid = true;
+
+        $('.user-checkbox').each(function(){
+
+          if ($(this).is(':checked')) {
+              
+              checked = true;
+
+              var checkbox = $(this);
+              var userId = checkbox.val();
+              var inputValue = $('.user-value[data-userid="' + userId + '"]').val();
+
+              console.log('checked:'+checked);
+              console.log('userId:'+userId);
+              console.log('inputValue:'+inputValue);
+
+              if ((!inputValue || parseInt(inputValue) <= 0)) {
+                  alert('Please provide a positive value for Agent: ' + userId + '.');
+                  valid = false;
+                  return false; // Exit the loop
+              }
+            }
+        });
+
+        if (!checked)
+        {
+            alert('Please select at least one Agent.');
+            event.preventDefault();
+        } else if (!valid) {
+            event.preventDefault();
+        }
+    
+        //event.preventDefault();
+    }
+
+    //event.preventDefault();
+
+  });  
+
  });
 </script>
 @endsection

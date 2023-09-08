@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuditController;
+use App\Http\Controllers\AuditControllerOutbound;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,7 +59,7 @@ Route::get('/calls/{userid}', function($userid){
 //Ignore API
 Route::get('/callid/{callid}/userid/{userid}/reason/{reason}',function($callid, $userid, $reason){
     
-    //$data = 
+    
     $rowsAffected = AuditController::UpdateIgnoredCalls($callid, $userid, $reason);
 
     return response()->json(
@@ -68,7 +69,7 @@ Route::get('/callid/{callid}/userid/{userid}/reason/{reason}',function($callid, 
 });
 
 //Update Audit Status API
-//Not is use
+//Not in use
 Route::get('/callid/{callid}/userid/{userid}', function($callid, $userid){
 
     $rowsAffected = AuditController::UpdateAuditStatus($callid, $userid);
@@ -78,3 +79,41 @@ Route::get('/callid/{callid}/userid/{userid}', function($callid, $userid){
     );
 });
 
+
+Route::get('/checkAuditStatus/type/{type}',function($type){
+
+    $status = AuditController::checkAuditStatus($type);
+
+});
+
+
+//OUTBOUND Routes
+Route::get('/calls-outbound/{userid}', function($userid){
+
+    $calls = AuditControllerOutbound::GetAssignedCalls($userid);
+        return response()->json(
+            $calls
+        );
+});
+
+//Update Ignore status
+Route::get('/soticketid/{callid}/userid/{userid}/reason/{reason}',function($callid, $userid, $reason){
+    
+    $rowsAffected = AuditControllerOutbound::UpdateIgnoredCalls($callid, $userid, $reason);
+
+    return response()->json(
+        ['rowsAffected' => $rowsAffected]
+    );
+
+});
+
+//Check Audit per agent count as per set value with user
+Route::get('/getAgentCountValidity/{agentid}/userid/{userid}',function($agentid, $userid){
+
+    $valid = AuditControllerOutbound::GetAgentCountValidity($agentid, $userid);
+    //dd($valid);
+
+    return response()->json(
+        ['valid' => $valid]
+    );
+});
