@@ -59,7 +59,7 @@ class AuditControllerOutbound extends Controller
 
          //Check if currently anyone is already processing a request in booking table
          $bookingStatus = SamplingModelOutbound::bookingStatusCheck('OB');
-         //$bookingStatus = NULL; //Uncomment this line
+         $bookingStatus = NULL; //Uncomment this line
          if(!empty($bookingStatus))
          {
             return redirect()->route('generate-outbound')->withErrors(['Another user is already processing a request, please try again after sometime.']);
@@ -392,7 +392,7 @@ class AuditControllerOutbound extends Controller
 
                     }else if($channel_flag_zero){
 
-                        //PERFOMR TEST
+                        //PERFOMR TEST //All custom filtered data is showing
                         $detla_Category = 10; //As we have custom % in second layer(Channel)
                         $delta_Status = 10;
                         $delta_Channel = $delta_Global;
