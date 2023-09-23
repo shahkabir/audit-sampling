@@ -530,7 +530,7 @@
    //Code for form validation
    $("#generate-form").submit(function(event) {
         // Get all checkboxes
-        var checkboxes = $(this).find("input[type='checkbox']");
+        var checkboxes = $(this).find("input[type='checkbox']");// need to take only the 3 checkboxes
 
         // Check if at least one checkbox is checked
         var isAtLeastOneChecked = checkboxes.is(":checked");
@@ -544,7 +544,7 @@
         var auditTarget = parseInt(auditTarget);
         if ((isNaN(auditTarget) || !auditTarget || auditTarget <= 0)) {
             event.preventDefault(); // Prevent form submission
-            alert("Please correct value in Sample Size.");
+            alert("Please provide correct value in Sample Size.");
         }
 
         //Check if all Totals are equal to Sample Size
@@ -602,18 +602,31 @@
         //  );
 
         $('#ticket-total').val( 
-              parseFloat($('#tc-nqc-val').val()) +
-              parseFloat($('#tc-oth-val').val()) +
-              parseFloat($('#tc-src-val').val()) +
-              parseFloat($('#tc-prc-val').val()) +
-              parseFloat($('#tc-irc-val').val()) +
-              parseFloat($('#tc-pcc-val').val()) +
-              parseFloat($('#tc-vasc-val').val()) +
-              parseFloat($('#tc-sr-val').val()) +
-              parseFloat($('#tc-rcc-val').val()) +
-              parseFloat($('#tc-pbc-val').val()) +
-              parseFloat($('#tc-toffee-val').val()) +
-              parseFloat($('#tc-csc-val').val())
+                getCount($('#tc-nqc-per').val(),auditTarget, false)+
+                getCount($('#tc-oth-per').val(),auditTarget, false)+
+                getCount($('#tc-src-per').val(),auditTarget, false)+
+                getCount($('#tc-prc-per').val(),auditTarget, false)+
+                getCount($('#tc-irc-per').val(),auditTarget, false)+
+                getCount($('#tc-pcc-per').val(),auditTarget, false)+
+                getCount($('#tc-vasc-per').val(),auditTarget, false)+
+                getCount($('#tc-sr-per').val(),auditTarget, false)+
+                getCount($('#tc-rcc-per').val(),auditTarget, false)+
+                getCount($('#tc-pbc-per').val(),auditTarget, false)+
+                getCount($('#tc-toffee-per').val(),auditTarget, false)+
+                getCount($('#tc-csc-per').val(),auditTarget, false)
+
+              // parseFloat($('#tc-nqc-val').val()) +
+              // parseFloat($('#tc-oth-val').val()) +
+              // parseFloat($('#tc-src-val').val()) +
+              // parseFloat($('#tc-prc-val').val()) +
+              // parseFloat($('#tc-irc-val').val()) +
+              // parseFloat($('#tc-pcc-val').val()) +
+              // parseFloat($('#tc-vasc-val').val()) +
+              // parseFloat($('#tc-sr-val').val()) +
+              // parseFloat($('#tc-rcc-val').val()) +
+              // parseFloat($('#tc-pbc-val').val()) +
+              // parseFloat($('#tc-toffee-val').val()) +
+              // parseFloat($('#tc-csc-val').val())
         );
 
         console.log($('#ticket-total').val());
@@ -625,12 +638,21 @@
         $('#ts-cl-val').val(getCount($('#ts-cl-per').val(),auditTarget));
 
        $('#ts-total').val(
-         parseFloat($('#ts-ass-val').val()) 
-         + parseFloat($('#ts-tf-val').val())
-         + parseFloat($('#ts-re-val').val())
-         + parseFloat($('#ts-fl-val').val())
-         + parseFloat($('#ts-cl-val').val())
-       );
+            getCount($('#ts-ass-per').val(),auditTarget, false)+
+            getCount($('#ts-tf-per').val(),auditTarget, false)+
+            getCount($('#ts-re-per').val(),auditTarget, false)+
+            getCount($('#ts-fl-per').val(),auditTarget, false)+
+            getCount($('#ts-cl-per').val(),auditTarget, false)
+        );
+
+        console.log($('#ts-total').val());
+
+        //  parseFloat($('#ts-ass-val').val()) 
+        //  + parseFloat($('#ts-tf-val').val())
+        //  + parseFloat($('#ts-re-val').val())
+        //  + parseFloat($('#ts-fl-val').val())
+        //  + parseFloat($('#ts-cl-val').val())
+       
        
     $('#ch-inb-val').val(getCount($('#ch-inb-per').val(),auditTarget));
     $('#ch-app-val').val(getCount($('#ch-app-per').val(),auditTarget));
@@ -641,12 +663,19 @@
 
 
        $('#ch-total').val(
-         parseFloat($('#ch-inb-val').val()) 
-         + parseFloat($('#ch-app-val').val())
-         + parseFloat($('#ch-ivr-val').val())
-         + parseFloat($('#ch-ussd-val').val())
-         + parseFloat($('#ch-mono-val').val())
-         + parseFloat($('#ch-oth-val').val())
+          getCount($('#ch-inb-per').val(),auditTarget, false)+
+          getCount($('#ch-app-per').val(),auditTarget, false)+
+          getCount($('#ch-ivr-per').val(),auditTarget, false)+
+          getCount($('#ch-ussd-per').val(),auditTarget, false)+
+          getCount($('#ch-mono-per').val(),auditTarget, false)+
+          getCount($('#ch-oth-per').val(),auditTarget, false)
+
+        //  parseFloat($('#ch-inb-val').val()) 
+        //  + parseFloat($('#ch-app-val').val())
+        //  + parseFloat($('#ch-ivr-val').val())
+        //  + parseFloat($('#ch-ussd-val').val())
+        //  + parseFloat($('#ch-mono-val').val())
+        //  + parseFloat($('#ch-oth-val').val())
          );
 
 
@@ -766,10 +795,17 @@
 
      });
 
-   function getCount(percent, auditTarget)
+   function getCount(percent, auditTarget, roundup = true)
    {
      var constant = 100;
-     return Math.round(((percent/constant)*auditTarget));//toFixed(2).replace(/\.?0*$/, '')
+     
+     if(roundup == true)
+     {
+      return Math.round(((percent/constant)*auditTarget));//toFixed(2).replace(/\.?0*$/, '')
+     }else{
+      return ((percent/constant)*auditTarget);
+     }
+      
    }
 
    //Date range picker

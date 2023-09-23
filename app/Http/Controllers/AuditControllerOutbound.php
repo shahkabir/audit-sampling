@@ -7,6 +7,38 @@ use Illuminate\Http\Request;
 
 class AuditControllerOutbound extends Controller
 {
+    private static $CategorykeyMappings = array(
+        'nqc_val' =>'Network Quality Complaint',
+        'oth_val' =>'Others',
+        'src_val' =>'Service Related Complaint',
+        'prc_val' =>'Promotional Offer/Bonus Related Complaint',
+        'irc_val' =>'Internet Related Complaint',
+        'pcc_val' =>'Package & Charging Related Complaint',
+        'vasc_val' =>'VAS Complaint',
+        'sr_val' =>'Service Request',
+        'rcc_val' =>'Recharge/Scratch Card Related Complaint',
+        'pbc_val' =>'Postpaid Billing Complaint',
+        'toffee_val' =>'Toffee',
+        'csc_val' =>'Corporate Sales & Complaints'
+    );
+
+    private static $StatuskeyMappings = array(
+        'ts_ass_val' =>'Assigned',
+        'ts_tf_val' =>'Technical Feedback',
+        'ts_re_val' =>'Re Assigned',
+        'ts_fl_val' =>'Follow Up',
+        'ts_cl_val' =>'Closed'
+    );
+
+    private static $ChannelkeyMappings = array(
+        'ch_inb_val' =>'Contact Center',
+        'ch_app_val' =>'BOS-My BL App',
+        'ch_ivr_val' =>'Complaint IVR 158',
+        'ch_ussd_val' =>'USSD',
+        'ch_mono_val' =>'Monobrand',
+        'ch_oth_val' => array('120 SMS','Banglalink Service Point','BTRC CRM','Corporate','Corporate Care Portal','Employee','Facebook','Icon','Regional','Retailer App')
+    );
+
     public static function AllSampling()
     {
         $rawdata = SamplingModelOutbound::getAllParamenter();
@@ -58,7 +90,7 @@ class AuditControllerOutbound extends Controller
         }
 
          //Check if currently anyone is already processing a request in booking table
-         $bookingStatus = SamplingModelOutbound::bookingStatusCheck('OB');
+         //$bookingStatus = SamplingModelOutbound::bookingStatusCheck('OB');
          $bookingStatus = NULL; //Uncomment this line
          if(!empty($bookingStatus))
          {
@@ -85,7 +117,7 @@ class AuditControllerOutbound extends Controller
         }
 
         //Set booking & booking_history table //uncomment below line
-        SamplingModelOutbound::bookingUpdate($assignedBy, 'OB', $from, $to);
+        //SamplingModelOutbound::bookingUpdate($assignedBy, 'OB', $from, $to);
 
         //Make the criteria arrays-
         $ticket_category = $this->makeTicketCategory($request);
@@ -100,37 +132,75 @@ class AuditControllerOutbound extends Controller
 
         // $this->printR($channel,0);
 
+        $category_flag_zero = $status_flag_zero = $channel_flag_zero = false;
+
+        if(is_array($secondLayerFlag))
+        {
+            $category_flag_zero = ($secondLayerFlag['category_flag_zero'] == 1) ? true : false;
+            $status_flag_zero = ($secondLayerFlag['status_flag_zero'] == 1) ? true : false;
+            $channel_flag_zero = ($secondLayerFlag['channel_flag_zero'] == 1) ? true : false;
+        }
+
         //Find Agents with Audit Count
         //Not feasible as we do not have any reference for agentID in SuperOffice tickets
         //$agents = $this->makeAgents(SamplingModelOutbound::getAuditCountByAgents($userType));
 
         $finalArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);
+        
         //dd($finalArray);
 
-        if(sizeof($finalArray) > $sampleSize)
+        if((sizeof($finalArray['dataset']) > $sampleSize) && ($category_flag_zero || $status_flag_zero || $channel_flag_zero))
+        //Will only process below if all 3 combinations are selected
         {
+            echo 'I am inside condition:';
             //Apply same algorithm on filtered data
-            $dataset2 = $this->getSelectedDataWithIndex($finalArray, $dataset);
+            $dataset2 = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
             $dataset3 = $this->SwapTableIDAndIndex($dataset2);
             //echo '$dataset3:'.sizeof($dataset3);
             //dd($dataset3);
 
+            $UltimateArray = $this->SelectSample($dataset3, $ticket_category, $ticket_status, $channel, $flagArray);//With fixed delta
+            $UltimateArrayWithData = $this->getSelectedDataWithIndex($UltimateArray['dataset'], $dataset);
 
-            $UltimateArray = $this->SelectSample($dataset3, $ticket_category, $ticket_status, $channel, $flagArray);
-            //echo 'Iaminside final logic';
-            //echo 'UltimateArray:'.sizeof($UltimateArray);
-            //dd($UltimateArray);
-            //$this->printR($UltimateArray,1);
-            
-            $finalArray = $UltimateArray;
+            if($category_flag_zero && $status_flag_zero && $channel_flag_zero)
+            { //If all values are custom
+
+                //Passing Full Dataset as $dataset for add/remove
+                //$getFinalCategoryCount = $this->getFinalCategoryCount($UltimateArrayWithData, $dataset, $ticket_category, $ticket_status, $channel);
+                $getFinalCategoryCount = $this->getFinalAllThreeCount($UltimateArrayWithData, $dataset3, $ticket_category, $ticket_status, $channel);
+                //$getFinalCategoryCount = $this->getFinalCategoryCount($dataset3, $dataset3, $ticket_category, $ticket_status, $channel);
+                //$getFinalCategoryCountWithData = $this->getSelectedDataWithIndex($getFinalCategoryCount, $dataset);
+                 //dd($getFinalCategoryCount);//Sometimes not add,delete is performed hence it is returned as is
+                $getFinalCategoryCount = $this->SwapTableIDAndIndex($getFinalCategoryCount);
+                //echo 'UltimateArray:';
+                //dd($UltimateArray);
+                //echo 'Iaminside final logic';
+                //echo 'UltimateArray:'.sizeof($UltimateArray);
+                //dd($UltimateArray);
+                //$this->printR($UltimateArray,1);
+                
+                //$finalArray = $UltimateArray['dataset']; //$finalArray = $UltimateArray
+
+                $finalArray = array_keys($getFinalCategoryCount);
+            }else{
+
+                $getFinalCategoryCount = $this->SwapTableIDAndIndex($UltimateArrayWithData);
+                $finalArray = array_keys($getFinalCategoryCount);
+                //dd($finalArray);
+            }
+
         }
 
+        if(array_key_exists('dataset', $finalArray))
+        {
+            $finalArray = $finalArray['dataset'];
+        }
         
         //Record the output size vs audit target and get the Last insert ID
         $sampleHistoryID = SamplingModelOutbound::insertSamplingHistory($assignedBy, $request->{'no-of-agent'},count($finalArray));
 
         //Take the data from temporary table
-        $selectedSample = SamplingModelOutbound::getSelectedSample($finalArray);
+        $selectedSample = SamplingModelOutbound::getSelectedSample($finalArray); // //$finalArray['dataset']
 
         //$this->printR($selectedSample,1);
 
@@ -180,7 +250,7 @@ class AuditControllerOutbound extends Controller
 
             //Getting BIT wise operator
             $combination = $category_flag | $status_flag | $channel_flag;
-            //echo '$combination:'.$combination;
+            echo '$combination:'.$combination;
 
             switch($combination){
                 case 0: //We have validated this in UI
@@ -193,14 +263,14 @@ class AuditControllerOutbound extends Controller
 
                     $CategoryOnlyArray = $this->getCategoryOnly($dataset, $ticket_category,1);
                     
-                    return $CategoryOnlyArray;
+                    return array('dataset' => $CategoryOnlyArray['final_array']);
 
                     break;
                 case 2:
                     //echo "status_flag selected.";
                     $StatusOnlyArray = $this->getStatusOnly($dataset, $ticket_status, 1);
 
-                    return $StatusOnlyArray;
+                    return array('dataset' => $StatusOnlyArray['final_array']);
 
                     break;
                 case 3:
@@ -232,7 +302,7 @@ class AuditControllerOutbound extends Controller
                     //First get categories with delta
                     $CategoryOnlyArray = $this->getCategoryOnly($dataset, $ticket_category, $detla_Category); //2
                     //echo '<br/>CategoryOnlyArray:'.sizeof($CategoryOnlyArray);
-                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray, $dataset);
+                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray['final_array'], $dataset);
 
 
                     $CategoryAndStatusArray = $this->getStatusOnly($CategoryOnlyArrayWithDataset, $ticket_status, $delta_Status); //1
@@ -240,14 +310,19 @@ class AuditControllerOutbound extends Controller
 
                     //$this->printR($CategoryAndStatusArray,1);
 
-                    return $CategoryAndStatusArray;
+                    //return $CategoryAndStatusArray;
+
+                    return array('dataset' => $CategoryAndStatusArray['final_array']);
 
                     break;
 
                 case 4:
                     //echo "channel_flag selected.";
                     $ChannelOnlyArray = $this->getChannelOnly($dataset, $channel, 1);
-                    return $ChannelOnlyArray;
+                    //return $ChannelOnlyArray;
+
+                    return array('dataset' => $ChannelOnlyArray['final_array']);
+                    
                     break;
 
                 case 5:
@@ -276,13 +351,16 @@ class AuditControllerOutbound extends Controller
                     //First get categories with delta
                     $CategoryOnlyArray = $this->getCategoryOnly($dataset, $ticket_category, $detla_Category); //2
 
-                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray, $dataset);
+                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray['final_array'], $dataset);
 
                     $CategoryAndChannelArray = $this->getChannelOnly($CategoryOnlyArrayWithDataset, $channel, $delta_Channel); //1
 
                     //echo '<br/>CategoryAndChannelArray:'.sizeof($CategoryAndChannelArray);
 
-                    return $CategoryAndChannelArray;
+                    //return $CategoryAndChannelArray;
+
+                    return array('dataset' => $CategoryAndChannelArray['final_array']);
+
                     break;
 
                 case 6:
@@ -315,12 +393,16 @@ class AuditControllerOutbound extends Controller
                     
                     //First get the status with delta
                     $StatusOnlyArray = $this->getStatusOnly($dataset, $ticket_status, $delta_Status); //2
-
-                    $StatusOnlyArrayWithDataset = $this->getSelectedDataWithIndex($StatusOnlyArray, $dataset);
-
-                    $StatusAndChannelArray = $this->getChannelOnly($StatusOnlyArrayWithDataset,$channel,$delta_Channel); //1
                     
-                    return $StatusAndChannelArray;
+                    //dd($StatusOnlyArray);
+
+                    $StatusOnlyArrayWithDataset = $this->getSelectedDataWithIndex($StatusOnlyArray['final_array'], $dataset);
+
+                    $StatusAndChannelArray = $this->getChannelOnly($StatusOnlyArrayWithDataset, $channel, $delta_Channel); //1
+                    
+                    //return $StatusAndChannelArray;
+
+                    return array('dataset' => $StatusAndChannelArray['final_array']);
 
                     break;
 
@@ -413,26 +495,36 @@ class AuditControllerOutbound extends Controller
 
                     //Implementing multiple filter layer with priority
                     $CategoryOnlyArray = $this->getCategoryOnly($dataset, $ticket_category, $detla_Category); //4
-                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray, $dataset);
+                    //$this->printR($CategoryOnlyArray,0);
+
+                    $CategoryOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryOnlyArray['final_array'], $dataset);
                     //echo '$CategoryOnlyArrayWithDataset:'.sizeof($CategoryOnlyArrayWithDataset);
                     //$this->printR($CategoryOnlyArrayWithDataset,0);
 
 
                     //Status filtered from category
                     $CategoryAndStatusArray = $this->getStatusOnly($CategoryOnlyArrayWithDataset, $ticket_status, $delta_Status); //4
-                    $StatusOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryAndStatusArray, $dataset);
+                    $StatusOnlyArrayWithDataset = $this->getSelectedDataWithIndex($CategoryAndStatusArray['final_array'], $dataset);
                     //echo '$StatusOnlyArrayWithDataset:'.sizeof($StatusOnlyArrayWithDataset);
-                    //$this->printR($StatusOnlyArrayWithDataset,0);
+                    //$this->printR($CategoryAndStatusArray,0);
 
                     //Channel filtered from Status,Category
                     $CategoryAndStatusAndChannelArray = $this->getChannelOnly($StatusOnlyArrayWithDataset, $channel, $delta_Channel); //1
                     //echo '$CategoryAndStatusAndChannelArray:'.sizeof($CategoryAndStatusAndChannelArray);
-                    //$this->printR($CategoryAndStatusAndChannelArray,0);
+                    //$this->printR($CategoryAndStatusAndChannelArray['final_array'],0);
 
                     //echo 'before second return:';
                     //dd($CategoryAndStatusAndChannelArray);
+                    
+                    //return $CategoryAndStatusAndChannelArray;
 
-                    return $CategoryAndStatusAndChannelArray;
+                    //Returning with final counts
+                    return array(
+                        'dataset' => $CategoryAndStatusAndChannelArray['final_array'],
+                        'ticket_category' => $CategoryOnlyArray['ticket_category'],
+                        'ticket_status' => $CategoryAndStatusArray['ticket_status'],
+                        'channel' => $CategoryAndStatusAndChannelArray['channel']
+                    );
                     
                     break;
 
@@ -502,7 +594,7 @@ class AuditControllerOutbound extends Controller
         // print_r($dataset);
         // print_r($ticket_category);
 
-        $keyMappings = array(
+        /*$keyMappings = array(
             'nqc_val' =>'Network Quality Complaint',
             'oth_val' =>'Others',
             'src_val' =>'Service Related Complaint',
@@ -515,22 +607,25 @@ class AuditControllerOutbound extends Controller
             'pbc_val' =>'Postpaid Billing Complaint',
             'toffee_val' =>'Toffee',
             'csc_val' =>'Corporate Sales & Complaints'
-        );
+        );*/
 
         $final_array = array();
         foreach($dataset as $data)
         {
                 //echo '<br/>cat:'.$data['CATEGORY'];
                 //echo '$index:'.
-                $index = array_search($data['CATEGORY'],$keyMappings);//Returns index or else false
+                $index = array_search($data['CATEGORY'], self::$CategorykeyMappings);//Returns index or else false
                 
                 if($index != FALSE)
                 {
-                    if((($ticket_category[$index]['tar']*$targetDelta)- $ticket_category[$index]['ach']) > 0)
+                    if((($ticket_category[$index]['tar']*$targetDelta) - $ticket_category[$index]['ach']) > 0)
                     {
                         $ticket_category[$index]['ach']++;
                         $final_array[] = $data['tableID'];
                     }
+
+                    //getting actual count
+                    $ticket_category[$index]['ach_act']++;
                 }
             //dd();
         }
@@ -539,25 +634,29 @@ class AuditControllerOutbound extends Controller
         //$this->printR($ticket_category,0);
         //$this->printR($final_array,0);
         //echo "----------------CATEGORY END----------------------";
-        return $final_array;
+        //return $final_array;
+        return array(
+            'final_array' => $final_array,
+            'ticket_category' => $ticket_category
+        );
     }
 
     public function getStatusOnly($dataset, $ticket_status, $targetDelta = 1)
     {
         //echo "<br/>-------------STATUS START------------------------";
-        $keyMappings = array(
-            'ts_ass_val' =>'Assigned',
-            'ts_tf_val' =>'Technical Feedback',
-            'ts_re_val' =>'Re Assigned',
-            'ts_fl_val' =>'Follow Up',
-            'ts_cl_val' =>'Closed'
-        );
+        // $keyMappings = array(
+        //     'ts_ass_val' =>'Assigned',
+        //     'ts_tf_val' =>'Technical Feedback',
+        //     'ts_re_val' =>'Re Assigned',
+        //     'ts_fl_val' =>'Follow Up',
+        //     'ts_cl_val' =>'Closed'
+        // );
 
         $final_array = array();
 
         foreach($dataset as $data)
         {
-            $index = array_search($data['STATUS'],$keyMappings);//Returns index or else false
+            $index = array_search($data['STATUS'], self::$StatuskeyMappings);//Returns index or else false //$keyMappings
 
             if($index != FALSE)
             {
@@ -566,6 +665,9 @@ class AuditControllerOutbound extends Controller
                         $ticket_status[$index]['ach']++;
                         $final_array[] = $data['tableID'];
                 }
+
+                $ticket_status[$index]['ach_act']++;
+
             }
         }
 
@@ -573,7 +675,12 @@ class AuditControllerOutbound extends Controller
         //$this->printR($final_array,0);
 
         //echo "-------------STATUS END------------------------";
-        return $final_array;
+        //return $final_array;
+
+        return array(
+            'final_array' => $final_array,
+            'ticket_status' => $ticket_status
+        );
 
     }
 
@@ -619,14 +726,14 @@ class AuditControllerOutbound extends Controller
     {
         //$this->printR($channel,0);
         //echo "<br/>-----------------CHANNEL START-----------------------";
-        $keyMappings = array(
-            'ch_inb_val' =>'Contact Center',
-            'ch_app_val' =>'BOS-My BL App',
-            'ch_ivr_val' =>'Complaint IVR 158',
-            'ch_ussd_val' =>'USSD',
-            'ch_mono_val' =>'Monobrand',
-            'ch_oth_val' => array('120 SMS','Banglalink Service Point','BTRC CRM','Corporate','Corporate Care Portal','Employee','Facebook','Icon','Regional','Retailer App')
-        );
+        // $keyMappings = array(
+        //     'ch_inb_val' =>'Contact Center',
+        //     'ch_app_val' =>'BOS-My BL App',
+        //     'ch_ivr_val' =>'Complaint IVR 158',
+        //     'ch_ussd_val' =>'USSD',
+        //     'ch_mono_val' =>'Monobrand',
+        //     'ch_oth_val' => array('120 SMS','Banglalink Service Point','BTRC CRM','Corporate','Corporate Care Portal','Employee','Facebook','Icon','Regional','Retailer App')
+        // );
         
         $final_array = array();
         
@@ -635,7 +742,7 @@ class AuditControllerOutbound extends Controller
 
             //echo '<br/>SOURCE:'.$data['SOURCE'];
 
-            foreach ($keyMappings as $key => $value) {
+            foreach (self::$ChannelkeyMappings as $key => $value) { //$keyMappings
 
                 if (is_array($value) && in_array($data['SOURCE'], $value)) {
                     $index = $key;
@@ -656,13 +763,21 @@ class AuditControllerOutbound extends Controller
                     $channel[$index]['ach']++;
                     $final_array[] = $data['tableID'];
                 }
+
+                $channel[$index]['ach_act']++;
             }
         }
 
         //$this->printR($channel,0);
         //$this->printR($final_array,0);
         //echo "-----------------CHANNEL END-----------------------";
-        return $final_array;
+        
+        //return $final_array;
+
+        return array(
+            'final_array' => $final_array,
+            'channel' => $channel
+        );
     }
 
     public function getSelectedDataWithIndex($source, $target)
@@ -671,7 +786,7 @@ class AuditControllerOutbound extends Controller
         $final_array = array();
 
         foreach($source as $s){
-            if(array_key_exists($s,$target))
+            if(array_key_exists($s, $target))
             {
                 $final_array[] = $target[$s];
             }
@@ -680,6 +795,931 @@ class AuditControllerOutbound extends Controller
         //$this->printR($final_array, 1);
 
         return $final_array;
+    }
+
+    public function getFinalAllThreeCount($dataset, $fullDataset, $ticket_category, $ticket_status, $channel)
+    {
+        //$this->getSelectedDataWithIndex();
+        echo 'I am inside getFinalCategoryCount';
+        //dd($dataset);
+        
+        //$this->printR($ticket_category, 0);
+        //$this->printR($dataset, 0);
+        //$this->printR($fullDataset, 0);
+
+        //Getting counts only
+        $ticket_category_ach = $this->getCategoryOnly($dataset, $ticket_category, $targetDelta = 1);
+        $ticket_category_ach = $ticket_category_ach['ticket_category'];
+        //$ticket_category = $ticket_category_ach['ticket_category'];
+
+        echo '<br/>initial achieve:';
+        $this->printR($ticket_category_ach, 0);
+
+        $ticket_status_ach = $this->getStatusOnly($dataset, $ticket_status, $targetDelta = 1);
+        $ticket_status_ach = $ticket_status_ach['ticket_status'];
+        //$this->printR($ticket_status,0);
+
+
+        $channel_ach = $this->getChannelOnly($dataset, $channel, $targetDelta = 1);
+        $channel_ach = $channel_ach['channel'];
+        //$this->printR($channel_ach,0);
+        
+        $modifiedDataset = $dataset;
+
+        $delta_per = 0.05;
+        $loopCount = 0;
+        
+        while(
+          //Ticket Categories
+            ($ticket_category_ach['nqc_val']['tar'] > 0 && (abs($ticket_category_ach['nqc_val']['tar']-$ticket_category_ach['nqc_val']['ach_act'])/$ticket_category_ach['nqc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['oth_val']['tar'] > 0 && (abs($ticket_category_ach['oth_val']['tar']-$ticket_category_ach['oth_val']['ach_act'])/$ticket_category_ach['oth_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['src_val']['tar'] > 0 && (abs($ticket_category_ach['src_val']['tar']-$ticket_category_ach['src_val']['ach_act'])/$ticket_category_ach['src_val']['tar']) >= $delta_per)   
+          || ($ticket_category_ach['prc_val']['tar'] > 0 && (abs($ticket_category_ach['prc_val']['tar']-$ticket_category_ach['prc_val']['ach_act'])/$ticket_category_ach['prc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['irc_val']['tar'] > 0 && (abs($ticket_category_ach['irc_val']['tar']-$ticket_category_ach['irc_val']['ach_act'])/$ticket_category_ach['irc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['pcc_val']['tar'] > 0 && (abs($ticket_category_ach['pcc_val']['tar']-$ticket_category_ach['pcc_val']['ach_act'])/$ticket_category_ach['pcc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['vasc_val']['tar'] > 0 && (abs($ticket_category_ach['vasc_val']['tar']-$ticket_category_ach['vasc_val']['ach_act'])/$ticket_category_ach['vasc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['sr_val']['tar'] > 0 && (abs($ticket_category_ach['sr_val']['tar'] - $ticket_category_ach['sr_val']['ach_act']) / $ticket_category_ach['sr_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['rcc_val']['tar'] > 0 && (abs($ticket_category_ach['rcc_val']['tar'] - $ticket_category_ach['rcc_val']['ach_act']) / $ticket_category_ach['rcc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['pbc_val']['tar'] > 0 && (abs($ticket_category_ach['pbc_val']['tar'] - $ticket_category_ach['pbc_val']['ach_act']) / $ticket_category_ach['pbc_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['toffee_val']['tar'] > 0 && (abs($ticket_category_ach['toffee_val']['tar'] - $ticket_category_ach['toffee_val']['ach_act']) / $ticket_category_ach['toffee_val']['tar']) >= $delta_per)
+          || ($ticket_category_ach['csc_val']['tar'] > 0 && (abs($ticket_category_ach['csc_val']['tar'] - $ticket_category_ach['csc_val']['ach_act']) / $ticket_category_ach['csc_val']['tar']) >= $delta_per)
+          
+          //Ticket Status
+          || ($ticket_status_ach['ts_ass_val']['tar'] > 0 && (abs($ticket_status_ach['ts_ass_val']['tar'] - $ticket_status_ach['ts_ass_val']['ach_act']) / $ticket_status_ach['ts_ass_val']['tar']) >= $delta_per)
+          || ($ticket_status_ach['ts_fl_val']['tar'] > 0 && (abs($ticket_status_ach['ts_fl_val']['tar']-$ticket_status_ach['ts_fl_val']['ach_act'])/$ticket_status_ach['ts_fl_val']['tar']) >= $delta_per)      
+          || ($ticket_status_ach['ts_re_val']['tar'] > 0 && (abs($ticket_status_ach['ts_re_val']['tar'] - $ticket_status_ach['ts_re_val']['ach_act']) / $ticket_status_ach['ts_re_val']['tar']) >= $delta_per)
+          || ($ticket_status_ach['ts_tf_val']['tar'] > 0 && (abs($ticket_status_ach['ts_tf_val']['tar'] - $ticket_status_ach['ts_tf_val']['ach_act']) / $ticket_status_ach['ts_tf_val']['tar']) >= $delta_per)
+          || ($ticket_status_ach['ts_cl_val']['tar'] > 0 && (abs($ticket_status_ach['ts_cl_val']['tar']-$ticket_status_ach['ts_cl_val']['ach_act'])/$ticket_status_ach['ts_cl_val']['tar']) >= $delta_per)      
+          
+          //Channel
+          || ($channel_ach['ch_inb_val']['tar'] > 0 && (abs($channel_ach['ch_inb_val']['tar']-$channel_ach['ch_inb_val']['ach_act'])/$channel_ach['ch_inb_val']['tar']) >= $delta_per)      
+          || ($channel_ach['ch_app_val']['tar'] > 0 && (abs($channel_ach['ch_app_val']['tar'] - $channel_ach['ch_app_val']['ach_act']) / $channel_ach['ch_app_val']['tar']) >= $delta_per)
+          || ($channel_ach['ch_ivr_val']['tar'] > 0 && (abs($channel_ach['ch_ivr_val']['tar'] - $channel_ach['ch_ivr_val']['ach_act']) / $channel_ach['ch_ivr_val']['tar']) >= $delta_per)        
+          || ($channel_ach['ch_ussd_val']['tar'] > 0 && (abs($channel_ach['ch_ussd_val']['tar'] - $channel_ach['ch_ussd_val']['ach_act']) / $channel_ach['ch_ussd_val']['tar']) >= $delta_per)
+          || ($channel_ach['ch_mono_val']['tar'] > 0 && (abs($channel_ach['ch_mono_val']['tar'] - $channel_ach['ch_mono_val']['ach_act']) / $channel_ach['ch_mono_val']['tar']) >= $delta_per)
+          || ($channel_ach['ch_oth_val']['tar'] > 0 && (abs($channel_ach['ch_oth_val']['tar'] - $channel_ach['ch_oth_val']['ach_act']) / $channel_ach['ch_oth_val']['tar']) >= $delta_per)
+            
+            // Conditions for 'ch_oth_val' (an array of values)
+            /*(
+                is_array($channel_ach['ch_oth_val'])
+                && count(array_intersect($channel_ach['ch_oth_val'], $targetValues['ch_oth_val'])) > 0
+            )*/
+        
+        
+          //  || ($ticket_category['ch_inb_val']['tar'] > 0 && (abs($ticket_category['ch_inb_val']['tar']-$ticket_category['ch_inb_val']['ach_act'])/$ticket_category['ch_inb_val']['tar']) >= $delta_per)
+            // ($ticket_category['nqc']['tar']-$ticket_category['nqc']['ach_act'] != 0 
+            // && $ticket_category['nqc']['tar']-$ticket_category['nqc']['ach_act'] 
+        )
+        {
+            echo "----------------------START loopcount: ".($loopCount+1)."--------------------------------";
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+            //$this->printR($ticket_category_ach, 0);
+
+
+            if($ticket_category_ach['nqc_val']['tar'] > 0 && (abs($ticket_category_ach['nqc_val']['tar']-$ticket_category_ach['nqc_val']['ach_act'])/$ticket_category_ach['nqc_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['nqc_val']['tar'] > $ticket_category_ach['nqc_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['nqc_val']['tar'] - $ticket_category_ach['nqc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|nqc_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['nqc_val']['ach_act'] - $ticket_category_ach['nqc_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|nqc_val', $removeCount, FALSE, $additionalFlag);
+                    //exit;
+                    //$ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1);
+                    //echo 'Final Ticket Category:';
+                    //$this->printR(($ticket_category_ach['ticket_category']), 1);
+                }
+            }
+
+            //Now get the modified counts
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+            //$this->printR($ticket_category_ach, 0);
+
+            if($ticket_category_ach['oth_val']['tar'] > 0 && (abs($ticket_category_ach['oth_val']['tar']-$ticket_category_ach['oth_val']['ach_act'])/$ticket_category_ach['oth_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['oth_val']['tar'] > $ticket_category_ach['oth_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['oth_val']['tar'] - $ticket_category_ach['oth_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|oth_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['oth_val']['ach_act'] - $ticket_category_ach['oth_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|oth_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+            //$this->printR($ticket_category_ach, 0);
+
+            if($ticket_category_ach['src_val']['tar'] > 0 && (abs($ticket_category_ach['src_val']['tar']-$ticket_category_ach['src_val']['ach_act'])/$ticket_category_ach['src_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['src_val']['tar'] > $ticket_category_ach['src_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['src_val']['tar'] - $ticket_category_ach['src_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|src_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['src_val']['ach_act'] - $ticket_category_ach['src_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|src_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+            //$this->printR($ticket_category_ach, 0);
+
+            if($ticket_category_ach['prc_val']['tar'] > 0 && (abs($ticket_category_ach['prc_val']['tar']-$ticket_category_ach['prc_val']['ach_act'])/$ticket_category_ach['prc_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['prc_val']['tar'] > $ticket_category_ach['prc_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['prc_val']['tar'] - $ticket_category_ach['prc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|prc_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['prc_val']['ach_act'] - $ticket_category_ach['prc_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|prc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            if($ticket_category_ach['irc_val']['tar'] > 0 && (abs($ticket_category_ach['irc_val']['tar']-$ticket_category_ach['irc_val']['ach_act'])/$ticket_category_ach['irc_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['irc_val']['tar'] > $ticket_category_ach['irc_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['irc_val']['tar'] - $ticket_category_ach['irc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|irc_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['irc_val']['ach_act'] - $ticket_category_ach['irc_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|irc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            if($ticket_category_ach['pcc_val']['tar'] > 0 && (abs($ticket_category_ach['pcc_val']['tar']-$ticket_category_ach['pcc_val']['ach_act'])/$ticket_category_ach['pcc_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['pcc_val']['tar'] > $ticket_category_ach['pcc_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['pcc_val']['tar'] - $ticket_category_ach['pcc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|pcc_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['pcc_val']['ach_act'] - $ticket_category_ach['pcc_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|pcc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            if($ticket_category_ach['vasc_val']['tar'] > 0 && (abs($ticket_category_ach['vasc_val']['tar']-$ticket_category_ach['vasc_val']['ach_act'])/$ticket_category_ach['vasc_val']['tar']) >= $delta_per)
+            {
+                if($ticket_category_ach['vasc_val']['tar'] > $ticket_category_ach['vasc_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $ticket_category_ach['vasc_val']['tar'] - $ticket_category_ach['vasc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|vasc_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $ticket_category_ach['vasc_val']['ach_act'] - $ticket_category_ach['vasc_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|vasc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            // Conditions for 'sr_val'
+            if ($ticket_category_ach['sr_val']['tar'] > 0 && (abs($ticket_category_ach['sr_val']['tar'] - $ticket_category_ach['sr_val']['ach_act']) / $ticket_category_ach['sr_val']['tar']) >= $delta_per) {
+                if ($ticket_category_ach['sr_val']['tar'] > $ticket_category_ach['sr_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $ticket_category_ach['sr_val']['tar'] - $ticket_category_ach['sr_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|sr_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $ticket_category_ach['sr_val']['ach_act'] - $ticket_category_ach['sr_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|sr_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            // Conditions for 'rcc_val'
+            if ($ticket_category_ach['rcc_val']['tar'] > 0 && (abs($ticket_category_ach['rcc_val']['tar'] - $ticket_category_ach['rcc_val']['ach_act']) / $ticket_category_ach['rcc_val']['tar']) >= $delta_per) {
+                if ($ticket_category_ach['rcc_val']['tar'] > $ticket_category_ach['rcc_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $ticket_category_ach['rcc_val']['tar'] - $ticket_category_ach['rcc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|rcc_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $ticket_category_ach['rcc_val']['ach_act'] - $ticket_category_ach['rcc_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|rcc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            // Conditions for 'pbc_val'
+            if ($ticket_category_ach['pbc_val']['tar'] > 0 && (abs($ticket_category_ach['pbc_val']['tar'] - $ticket_category_ach['pbc_val']['ach_act']) / $ticket_category_ach['pbc_val']['tar']) >= $delta_per) {
+                if ($ticket_category_ach['pbc_val']['tar'] > $ticket_category_ach['pbc_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $ticket_category_ach['pbc_val']['tar'] - $ticket_category_ach['pbc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|pbc_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $ticket_category_ach['pbc_val']['ach_act'] - $ticket_category_ach['pbc_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|pbc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            // Conditions for 'toffee_val'
+            if ($ticket_category_ach['toffee_val']['tar'] > 0 && (abs($ticket_category_ach['toffee_val']['tar'] - $ticket_category_ach['toffee_val']['ach_act']) / $ticket_category_ach['toffee_val']['tar']) >= $delta_per) {
+                if ($ticket_category_ach['toffee_val']['tar'] > $ticket_category_ach['toffee_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $ticket_category_ach['toffee_val']['tar'] - $ticket_category_ach['toffee_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|toffee_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $ticket_category_ach['toffee_val']['ach_act'] - $ticket_category_ach['toffee_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|toffee_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            //echo '<br/>ticket_category_ach:';
+
+            // Conditions for 'csc_val'
+            if ($ticket_category_ach['csc_val']['tar'] > 0 && (abs($ticket_category_ach['csc_val']['tar'] - $ticket_category_ach['csc_val']['ach_act']) / $ticket_category_ach['csc_val']['tar']) >= $delta_per) {
+                if ($ticket_category_ach['csc_val']['tar'] > $ticket_category_ach['csc_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $ticket_category_ach['csc_val']['tar'] - $ticket_category_ach['csc_val']['ach_act'];
+                    $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|csc_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $ticket_category_ach['csc_val']['ach_act'] - $ticket_category_ach['csc_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'CATEGORY|csc_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            $this->printR($ticket_category_ach, 0);
+
+            
+                    //STATUS check
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+                    
+                    // Conditions for 'ts_ass_val'
+                    if ($ticket_status_ach['ts_ass_val']['tar'] > 0 && (abs($ticket_status_ach['ts_ass_val']['tar'] - $ticket_status_ach['ts_ass_val']['ach_act']) / $ticket_status_ach['ts_ass_val']['tar']) >= $delta_per) {
+                        if ($ticket_status_ach['ts_ass_val']['tar'] > $ticket_status_ach['ts_ass_val']['ach_act']) {
+                            // Need to add
+                            $addCount = $ticket_status_ach['ts_ass_val']['tar'] - $ticket_status_ach['ts_ass_val']['ach_act'];
+                            $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_ass_val', $addCount, TRUE, $additionalFlag);
+                        } else {
+                            // Need to remove
+                            $removeCount = $ticket_status_ach['ts_ass_val']['ach_act'] - $ticket_status_ach['ts_ass_val']['tar'];
+                            $additionalFlag = NULL;
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_ass_val', $removeCount, FALSE, $additionalFlag);
+                        }
+                    }
+
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+
+                    // Conditions for 'ts_tf_val'
+                    if ($ticket_status_ach['ts_tf_val']['tar'] > 0 && (abs($ticket_status_ach['ts_tf_val']['tar'] - $ticket_status_ach['ts_tf_val']['ach_act']) / $ticket_status_ach['ts_tf_val']['tar']) >= $delta_per) {
+                        if ($ticket_status_ach['ts_tf_val']['tar'] > $ticket_status_ach['ts_tf_val']['ach_act']) {
+                            // Need to add
+                            $addCount = $ticket_status_ach['ts_tf_val']['tar'] - $ticket_status_ach['ts_tf_val']['ach_act'];
+                            $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_tf_val', $addCount, TRUE, $additionalFlag);
+                        } else {
+                            // Need to remove
+                            $removeCount = $ticket_status_ach['ts_tf_val']['ach_act'] - $ticket_status_ach['ts_tf_val']['tar'];
+                            $additionalFlag = NULL;
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_tf_val', $removeCount, FALSE, $additionalFlag);
+                        }
+                    }
+
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+
+                    // Conditions for 'ts_re_val'
+                    if ($ticket_status_ach['ts_re_val']['tar'] > 0 && (abs($ticket_status_ach['ts_re_val']['tar'] - $ticket_status_ach['ts_re_val']['ach_act']) / $ticket_status_ach['ts_re_val']['tar']) >= $delta_per) {
+                        if ($ticket_status_ach['ts_re_val']['tar'] > $ticket_status_ach['ts_re_val']['ach_act']) {
+                            // Need to add
+                            $addCount = $ticket_status_ach['ts_re_val']['tar'] - $ticket_status_ach['ts_re_val']['ach_act'];
+                            $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_re_val', $addCount, TRUE, $additionalFlag);
+                        } else {
+                            // Need to remove
+                            $removeCount = $ticket_status_ach['ts_re_val']['ach_act'] - $ticket_status_ach['ts_re_val']['tar'];
+                            $additionalFlag = NULL;
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_re_val', $removeCount, FALSE, $additionalFlag);
+                        }
+                    }
+                    
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+
+                    // Conditions for 'ts_fl_val'
+                    if ($ticket_status_ach['ts_fl_val']['tar'] > 0 && (abs($ticket_status_ach['ts_fl_val']['tar'] - $ticket_status_ach['ts_fl_val']['ach_act']) / $ticket_status_ach['ts_fl_val']['tar']) >= $delta_per) {
+                        if ($ticket_status_ach['ts_fl_val']['tar'] > $ticket_status_ach['ts_fl_val']['ach_act']) {
+                            // Need to add
+                            $addCount = $ticket_status_ach['ts_fl_val']['tar'] - $ticket_status_ach['ts_fl_val']['ach_act'];
+                            $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_fl_val', $addCount, TRUE, $additionalFlag);
+                        } else {
+                            // Need to remove
+                            $removeCount = $ticket_status_ach['ts_fl_val']['ach_act'] - $ticket_status_ach['ts_fl_val']['tar'];
+                            $additionalFlag = NULL;
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_fl_val', $removeCount, FALSE, $additionalFlag);
+                        }
+                    }
+
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+                    
+                    if($ticket_status_ach['ts_cl_val']['tar'] > 0 && (abs($ticket_status_ach['ts_cl_val']['tar']-$ticket_status_ach['ts_cl_val']['ach_act'])/$ticket_status_ach['ts_cl_val']['tar']) >= $delta_per)
+                    {
+                        if($ticket_status_ach['ts_cl_val']['tar'] > $ticket_status_ach['ts_cl_val']['ach_act'])
+                        { 
+                            //Need to add
+                            $addCount = $ticket_status_ach['ts_cl_val']['tar'] - $ticket_status_ach['ts_cl_val']['ach_act'];
+                            $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_cl_val', $addCount, TRUE, $additionalFlag);
+
+                        }else{
+                            //Need to remove
+                            $removeCount = $ticket_status_ach['ts_cl_val']['ach_act'] - $ticket_status_ach['ts_cl_val']['tar'] ;
+                            $additionalFlag = NULL;
+                            $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'STATUS|ts_cl_val', $removeCount, FALSE, $additionalFlag);
+                        }
+                    }
+
+                    $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+                    $ticket_status_ach = $ticket_status_ach['ticket_status'];
+                    $this->printR($ticket_status_ach, 0);
+
+            //CHANNEL
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            if($channel_ach['ch_inb_val']['tar'] > 0 && (abs($channel_ach['ch_inb_val']['tar']-$channel_ach['ch_inb_val']['ach_act'])/$channel_ach['ch_inb_val']['tar']) >= $delta_per)
+            {
+                if($channel_ach['ch_inb_val']['tar'] > $channel_ach['ch_inb_val']['ach_act'])
+                { 
+                    //Need to add
+                    $addCount = $channel_ach['ch_inb_val']['tar'] - $channel_ach['ch_inb_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_inb_val', $addCount, TRUE, $additionalFlag);
+
+                }else{
+                    //Need to remove
+                    $removeCount = $channel_ach['ch_inb_val']['ach_act'] - $channel_ach['ch_inb_val']['tar'] ;
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_inb_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            // Conditions for 'ch_app_val'
+            if ($channel_ach['ch_app_val']['tar'] > 0 && (abs($channel_ach['ch_app_val']['tar'] - $channel_ach['ch_app_val']['ach_act']) / $channel_ach['ch_app_val']['tar']) >= $delta_per) {
+                if ($channel_ach['ch_app_val']['tar'] > $channel_ach['ch_app_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $channel_ach['ch_app_val']['tar'] - $channel_ach['ch_app_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_app_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $channel_ach['ch_app_val']['ach_act'] - $channel_ach['ch_app_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_app_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            // Conditions for 'ch_ivr_val'
+            if ($channel_ach['ch_ivr_val']['tar'] > 0 && (abs($channel_ach['ch_ivr_val']['tar'] - $channel_ach['ch_ivr_val']['ach_act']) / $channel_ach['ch_ivr_val']['tar']) >= $delta_per) {
+                if ($channel_ach['ch_ivr_val']['tar'] > $channel_ach['ch_ivr_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $channel_ach['ch_ivr_val']['tar'] - $channel_ach['ch_ivr_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_ivr_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $channel_ach['ch_ivr_val']['ach_act'] - $channel_ach['ch_ivr_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_ivr_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            // Conditions for 'ch_ussd_val'
+            if ($channel_ach['ch_ussd_val']['tar'] > 0 && (abs($channel_ach['ch_ussd_val']['tar'] - $channel_ach['ch_ussd_val']['ach_act']) / $channel_ach['ch_ussd_val']['tar']) >= $delta_per) {
+                if ($channel_ach['ch_ussd_val']['tar'] > $channel_ach['ch_ussd_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $channel_ach['ch_ussd_val']['tar'] - $channel_ach['ch_ussd_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_ussd_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $channel_ach['ch_ussd_val']['ach_act'] - $channel_ach['ch_ussd_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_ussd_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            // Conditions for 'ch_mono_val'
+            if ($channel_ach['ch_mono_val']['tar'] > 0 && (abs($channel_ach['ch_mono_val']['tar'] - $channel_ach['ch_mono_val']['ach_act']) / $channel_ach['ch_mono_val']['tar']) >= $delta_per) {
+                if ($channel_ach['ch_mono_val']['tar'] > $channel_ach['ch_mono_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $channel_ach['ch_mono_val']['tar'] - $channel_ach['ch_mono_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_mono_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $channel_ach['ch_mono_val']['ach_act'] - $channel_ach['ch_mono_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_mono_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+
+            
+            // Conditions for 'ch_oth_val' (an array of values)
+            if ($channel_ach['ch_oth_val']['tar'] > 0 && (abs($channel_ach['ch_oth_val']['tar'] - $channel_ach['ch_oth_val']['ach_act']) / $channel_ach['ch_oth_val']['tar']) >= $delta_per) {
+                if ($channel_ach['ch_oth_val']['tar'] > $channel_ach['ch_oth_val']['ach_act']) {
+                    // Need to add
+                    $addCount = $channel_ach['ch_oth_val']['tar'] - $channel_ach['ch_oth_val']['ach_act'];
+                    $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_oth_val', $addCount, TRUE, $additionalFlag);
+                } else {
+                    // Need to remove
+                    $removeCount = $channel_ach['ch_oth_val']['ach_act'] - $channel_ach['ch_oth_val']['tar'];
+                    $additionalFlag = NULL;
+                    $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToRemove = 'SOURCE|ch_oth_val', $removeCount, FALSE, $additionalFlag);
+                }
+            }
+
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+            $this->printR($channel_ach, 0);
+
+            //$dataset = $modifiedDataset;
+            $loopCount++;
+            echo '<br/>LoopCount:'.$loopCount;
+            //echo '<br/>Check modifiedDataset null:'.is_null($modifiedDataset);
+            
+            //Now get the modified counts
+            //Ticket Category
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $ticket_category_ach['ticket_category'];
+            echo '<br/>ticket_category_ach: FINAL';
+            $this->printR($ticket_category_ach, 0);
+
+            //Ticket Status
+            $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+            $ticket_status_ach = $ticket_status_ach['ticket_status'];
+            echo '<br/>ticket_status_ach: FINAL';
+            $this->printR($ticket_status_ach,0);
+
+            //Channel
+            $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+            $channel_ach = $channel_ach['channel'];
+            echo '<br/>channel_ach: FINAL';
+            $this->printR($channel_ach, 0);
+
+            if($loopCount == 5)
+            {
+                break;
+            }
+
+            echo "----------------------END loopcount: ".($loopCount)."--------------------------------";
+        }
+        
+        //exit;
+        //echo '<br/>final achieve before return';
+        //$this->printR($ticket_category_ach, 0);
+
+        echo '<br/>Total LoopCount:'.$loopCount;
+
+        return $modifiedDataset;
+    }
+
+    //Add or remove in existing dataset from $fullDataSet
+    //If Add, then only new index will come
+    public function AddRemoveFromDataset($dataset, $fullDataset, $whatToRemove, $addRemoveCount, $addRemoveFlag, $additionalFlag)
+    {
+        $dataset = $this->SwapTableIDAndIndex($dataset);
+        echo '<br/>Before $dataset:'.count($dataset);
+        //echo '<br/>is_array:'.is_array($additionalFlag);
+        
+
+        // if(is_array($additionalFlag))
+        // {
+        //     $this->printR($additionalFlag, 0);
+        //     //dd($additionalFlag);
+        // }
+
+        //Based on $cat the mapping variable will be changed
+        //Get the corresponding Key Mapping variable
+        $whatToRemove = explode("|", $whatToRemove);
+        $cat = $whatToRemove[0];
+        $subCat = $whatToRemove[1];
+        $keyMapping = NULL;
+
+        if($cat === 'CATEGORY'){
+            $keyMapping = self::$CategorykeyMappings;
+            $keyMapping_STATUS = self::$StatuskeyMappings;
+            $keyMapping_CHANNEL = self::$ChannelkeyMappings;
+
+        }else if($cat === 'STATUS'){
+            $keyMapping = self::$StatuskeyMappings;
+            $keyMapping_CATEGORY = self::$CategorykeyMappings;
+            $keyMapping_CHANNEL = self::$ChannelkeyMappings;
+
+        }else if($cat === 'SOURCE'){
+            $keyMapping = self::$ChannelkeyMappings;
+            $keyMapping_STATUS = self::$StatuskeyMappings;
+            $keyMapping_CATEGORY = self::$CategorykeyMappings;
+        }
+
+        if($addRemoveFlag == TRUE) 
+        {   //Add elements
+            //Add items from $fullDataset to $dataset
+            //$availableIndexes = array_diff(array_keys($fullDataset), array_keys($dataset));
+
+            //Taking the categories-CATEGORY,STATUS,CHANNEL & sub category
+            // $whatToRemove = explode("|", $whatToRemove);
+            // $cat = $whatToRemove[0];
+            // $subCat = $whatToRemove[1];
+            // print_r($whatToRemove);
+
+            //Need to check below function-
+            $availableIndexes = array_diff(
+
+                array_filter(array_keys($fullDataset), function($index) use ($fullDataset, $cat, $subCat, $keyMapping, $additionalFlag) {
+
+                    //$keyMapping is array for $ChannelkeyMappings variable
+                    //return isset($fullDataset[$index][$cat]) && $fullDataset[$index][$cat] === $keyMapping[$subCat];
+
+                    if(is_array($keyMapping[$subCat]))
+                    {
+                        return isset($fullDataset[$index][$cat]) && in_array($fullDataset[$index][$cat], $keyMapping[$subCat]);
+                    }else{
+
+                        //return isset($fullDataset[$index][$cat]) && $fullDataset[$index][$cat] === $keyMapping[$subCat];
+
+                        if($cat === 'CATEGORY'){
+                            $ticket_status_ach = $additionalFlag['ticket_status_ach'];
+                            $channel_ach = $additionalFlag['channel_ach'];
+                            
+                            // $this->printR($ticket_status_ach, 0);
+                            // $this->printR($channel_ach, 0);
+
+                            $required_indexes = array();
+                            
+                            foreach($ticket_status_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            foreach($channel_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            // echo '<br/>Required Indexes:';
+                            // $this->printR($required_indexes, 0);
+
+                            if(isset($fullDataset[$index][$cat]))
+                            {
+                                if($fullDataset[$index][$cat] === $keyMapping[$subCat])
+                                {
+                                    //Priority of other categories if exists and achieve is less than target
+                                    if(!empty($required_indexes))
+                                    {
+                                        foreach($required_indexes as $ind)
+                                        {
+                                            //echo '<br/>For CATEGORY,check $status:'.
+                                            $status = (array_key_exists($ind, self::$StatuskeyMappings)) && ($fullDataset[$index]['STATUS'] === self::$StatuskeyMappings[$ind]);
+                                            //echo '<br/>For CATEGORY,check $channel:'.
+                                            $channel = (array_key_exists($ind, self::$ChannelkeyMappings) && ($fullDataset[$index]['SOURCE'] === self::$ChannelkeyMappings[$ind]));
+
+                                            if($status && $channel)
+                                            {
+                                                return TRUE;
+                                            }else if($status || $channel)
+                                            {
+                                                return TRUE;
+                                            }
+                                        }
+                                    }
+
+                                    //if enabled then there is deviation, if not then outcome is more accurate
+                                    //return TRUE;
+
+                                }else{
+
+                                    return FALSE;
+                                }
+
+                            }else{
+
+                                return FALSE;
+                            }
+
+                            //Original return statement
+                            //return isset($fullDataset[$index][$cat]) && $fullDataset[$index][$cat] === $keyMapping[$subCat];
+
+                        }else if($cat === 'STATUS'){
+                            $ticket_category_ach = $additionalFlag['ticket_category_ach'];
+                            $channel_ach = $additionalFlag['channel_ach'];
+                            
+                            // $this->printR($ticket_status_ach, 0);
+                            // $this->printR($channel_ach, 0);
+
+                            $required_indexes = array();
+                            
+                            foreach($ticket_category_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            foreach($channel_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            // echo '<br/>Required Indexes:';
+                            // $this->printR($required_indexes, 0);
+
+                            if(isset($fullDataset[$index][$cat]))
+                            {
+                                if($fullDataset[$index][$cat] === $keyMapping[$subCat])
+                                {
+                                    //Priority of other categories if exists and achieve is less than target
+                                    if(!empty($required_indexes))
+                                    {
+                                        foreach($required_indexes as $ind)
+                                        {
+                                            //echo '<br/>For STATUS,check $category:'.
+                                            $category = (array_key_exists($ind, self::$CategorykeyMappings)) && ($fullDataset[$index]['CATEGORY'] === self::$CategorykeyMappings[$ind]);
+                                            //echo '<br/>For STATUS,check $channel:'.
+                                            $channel = (array_key_exists($ind, self::$ChannelkeyMappings) && ($fullDataset[$index]['SOURCE'] === self::$ChannelkeyMappings[$ind]));
+
+                                            if($category && $channel)
+                                            {
+                                                return TRUE;
+                                            }else if($category || $channel)
+                                            {
+                                                return TRUE;
+                                            }
+                                        }
+                                    }
+
+                                    //return TRUE;
+
+                                }else{
+
+                                    return FALSE;
+                                }
+
+                            }else{
+
+                                return FALSE;
+                            }
+                        }else if($cat === 'SOURCE'){
+                            $ticket_category_ach = $additionalFlag['ticket_category_ach'];
+                            $ticket_status_ach = $additionalFlag['ticket_status_ach'];
+                            
+                            // $this->printR($ticket_status_ach, 0);
+                            // $this->printR($channel_ach, 0);
+
+                            $required_indexes = array();
+                            
+                            foreach($ticket_category_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            foreach($ticket_status_ach as $key => $val)
+                            {
+                                if($val['tar'] > 0 && $val['ach_act'] < $val['tar'])
+                                {
+                                    $required_indexes[] = $key;
+                                }
+                            }
+
+                            // echo '<br/>Required Indexes:';
+                            // $this->printR($required_indexes, 0);
+
+                            if(isset($fullDataset[$index][$cat]))
+                            {
+                                if($fullDataset[$index][$cat] === $keyMapping[$subCat])
+                                {
+                                    //Priority of other categories if exists and achieve is less than target
+                                    if(!empty($required_indexes))
+                                    {
+                                        foreach($required_indexes as $ind)
+                                        {
+                                            //echo '<br/>For CHANNEL,check $category:'.
+                                            $category = (array_key_exists($ind, self::$CategorykeyMappings)) && ($fullDataset[$index]['CATEGORY'] === self::$CategorykeyMappings[$ind]);
+                                            //echo '<br/>For CHANNEL,check $status:'.
+                                            $status = (array_key_exists($ind, self::$StatuskeyMappings) && ($fullDataset[$index]['STATUS'] === self::$StatuskeyMappings[$ind]));
+
+                                            if($category && $status)
+                                            {
+                                                return TRUE;
+                                            }else if($category || $status)
+                                            {
+                                                return TRUE;
+                                            }
+                                        }
+                                    }
+
+                                    //return TRUE;
+
+                                }else{
+
+                                    return FALSE;
+                                }
+
+                            }else{
+
+                                return FALSE;
+                            }
+                        }
+
+                    }
+
+                }),array_keys($dataset)
+
+            );
+
+            // echo '$availableIndexes';
+            // $this->printR($availableIndexes,0);
+
+            //shuffle($availableIndexes);
+
+            if (!empty($availableIndexes)) {
+                // Randomly select indexes from $fullDataset
+                echo "<br/>No of items to add for $subCat:".$addRemoveCount;
+
+                $selectedIndexes = array_rand($availableIndexes, min($addRemoveCount, count($availableIndexes)));
+    
+                if (is_array($selectedIndexes)) {
+
+                    foreach ($selectedIndexes as $index) {
+                        $dataset[$availableIndexes[$index]] = $fullDataset[$availableIndexes[$index]];
+                    }
+
+                } else {
+                    //Might return single element
+                    $dataset[$availableIndexes[$selectedIndexes]] = $fullDataset[$availableIndexes[$selectedIndexes]];
+                }
+            }
+
+            return $dataset;
+
+        }else{ //Remove elements
+            
+            // $whatToRemove = explode("|", $whatToRemove);
+            // $cat = $whatToRemove[0];
+            // $subCat = $whatToRemove[1];
+            //print_r($whatToRemove);
+
+            //Remove from $datset
+            //Take 
+            //$this->printR($dataset,0);
+            echo "<br/>Delete for $subCat:".$addRemoveCount;
+            //$this->printR(self::$CategorykeyMappings,1);
+
+            $removedCount = 0; // Counter for removed elements
+
+            foreach ($dataset as $index => $data) {
+
+                if ($removedCount >= $addRemoveCount) {
+                    break; // Exit the loop when the desired number of elements have been removed
+                }
+
+                //$this->printR($index,0);
+                //$this->printR($data,0);
+                //exit
+                // echo '$data[$cat]:'.$data[$cat];
+                // echo 'self::$CategorykeyMappings[$subCat]:'. self::$CategorykeyMappings[$subCat];
+
+                if (isset($data[$cat]) && $data[$cat] === $keyMapping[$subCat]) {
+                    // Remove the element from $dataset
+                    unset($dataset[$index]);
+                    //echo "<br/>removed $index element:".$removedCount;
+                    $removedCount++; // Increment the counter
+                }
+            }
+
+            //echo 'After $dataset'.count($dataset);
+            //$this->printR($dataset,1);
+            //exit;
+            return $dataset;
+        }
+
+        // Reindex the array if needed
+        // $dataset = array_values($dataset);
+
+        //}
     }
 
     public function makeTicketCategory($request)
@@ -698,42 +1738,42 @@ class AuditControllerOutbound extends Controller
         $csc_val = $request->{'csc-val'};
 
         return $ticket_category = array(
-            'nqc_val' => array('tar'=>$nqc_val,'ach'=>0),
-	        'oth_val' => array('tar'=>$oth_val,'ach'=>0),
-	        'src_val' => array('tar'=>$src_val,'ach'=>0),
-	        'prc_val' => array('tar'=>$prc_val,'ach'=>0),
-	        'irc_val' => array('tar'=>$irc_val,'ach'=>0),
+            'nqc_val' => array('tar'=>$nqc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+	        'oth_val' => array('tar'=>$oth_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+	        'src_val' => array('tar'=>$src_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+	        'prc_val' => array('tar'=>$prc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+	        'irc_val' => array('tar'=>$irc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
 
-            'pcc_val' => array('tar'=>$pcc_val,'ach'=>0),
-            'vasc_val' => array('tar'=>$vasc_val,'ach'=>0),
-            'sr_val' => array('tar'=>$sr_val,'ach'=>0),
-            'rcc_val' => array('tar'=>$rcc_val,'ach'=>0),
-            'pbc_val' => array('tar'=>$pbc_val,'ach'=>0),
-            'toffee_val' => array('tar'=>$toffee_val,'ach'=>0),
-            'csc_val' => array('tar'=>$csc_val,'ach'=>0)
+            'pcc_val' => array('tar'=>$pcc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'vasc_val' => array('tar'=>$vasc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'sr_val' => array('tar'=>$sr_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'rcc_val' => array('tar'=>$rcc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'pbc_val' => array('tar'=>$pbc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'toffee_val' => array('tar'=>$toffee_val,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'csc_val' => array('tar'=>$csc_val,'ach'=>0, 'ach_act'=>0, 'max'=>0)
         );
     }
 
     public function makeTicketStatus($request)
     {
         return $ticket_status = array(
-            'ts_ass_val' => array('tar'=>$request->{'ts-ass-val'} ,'ach'=>0),
-            'ts_tf_val' => array('tar'=>$request->{'ts-tf-val'} ,'ach'=>0),
-            'ts_re_val' => array('tar'=>$request->{'ts-re-val'} ,'ach'=>0),
-            'ts_fl_val' => array('tar'=>$request->{'ts-fl-val'} ,'ach'=>0),
-            'ts_cl_val' => array('tar'=>$request->{'ts-cl-val'} ,'ach'=>0)
+            'ts_ass_val' => array('tar'=>$request->{'ts-ass-val'} ,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ts_tf_val' => array('tar'=>$request->{'ts-tf-val'} ,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ts_re_val' => array('tar'=>$request->{'ts-re-val'} ,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ts_fl_val' => array('tar'=>$request->{'ts-fl-val'} ,'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ts_cl_val' => array('tar'=>$request->{'ts-cl-val'} ,'ach'=>0, 'ach_act'=>0, 'max'=>0)
         );
     }
     
     public function makeChannel($request)
     {
         return $channel = array(
-            'ch_inb_val' => array('tar'=>$request->{'ch-inb-val'}, 'ach'=>0),
-            'ch_app_val' => array('tar'=>$request->{'ch-app-val'}, 'ach'=>0),
-            'ch_ivr_val' => array('tar'=>$request->{'ch-ivr-val'}, 'ach'=>0),
-            'ch_ussd_val' => array('tar'=>$request->{'ch-ussd-val'}, 'ach'=>0),
-            'ch_mono_val' => array('tar'=>$request->{'ch-mono-val'}, 'ach'=>0),
-            'ch_oth_val' => array('tar'=>$request->{'ch-oth-val'}, 'ach'=>0)
+            'ch_inb_val' => array('tar'=>$request->{'ch-inb-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ch_app_val' => array('tar'=>$request->{'ch-app-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ch_ivr_val' => array('tar'=>$request->{'ch-ivr-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ch_ussd_val' => array('tar'=>$request->{'ch-ussd-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ch_mono_val' => array('tar'=>$request->{'ch-mono-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0),
+            'ch_oth_val' => array('tar'=>$request->{'ch-oth-val'}, 'ach'=>0, 'ach_act'=>0, 'max'=>0)
         );
     }
 
