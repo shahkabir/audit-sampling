@@ -153,12 +153,12 @@ class AuditControllerOutbound extends Controller
         )
         //Will only process below if all 3 combinations are selected
         {
-            echo 'I am inside condition:';
+            //echo 'I am inside condition:';
             //Apply same algorithm on filtered data
             $dataset2 = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
             $dataset3 = $this->SwapTableIDAndIndex($dataset2);
             
-            echo '$dataset3:'.sizeof($dataset3);
+            //echo '$dataset3:'.sizeof($dataset3);
             //exit();//dd($dataset3);
 
             //Commented below lines as seems not needed any more
@@ -170,7 +170,8 @@ class AuditControllerOutbound extends Controller
             //ADDED--> (sizeof($finalArray['dataset']) > $sampleSize) || 
             if(($category_flag_zero && $status_flag_zero && $channel_flag_zero))
             { //If all values are custom
-                echo "<br/>I am in 2nd level selection";
+                //echo "<br/>I am in 2nd level selection";
+
                 //Passing Full Dataset as $dataset for add/remove
                 //$getFinalCategoryCount = $this->getFinalCategoryCount($UltimateArrayWithData, $dataset, $ticket_category, $ticket_status, $channel);
                 $getFinalCategoryCount = $this->getFinalAllThreeCount($UltimateArrayWithData, $dataset3, $ticket_category, $ticket_status, $channel);
@@ -190,7 +191,8 @@ class AuditControllerOutbound extends Controller
 
             }else if($category_flag && $status_flag && $channel_flag)
             { //If all values are 1st layer
-                echo "<br/>I am in 1st level selection";
+                //echo "<br/>I am in 1st level selection";
+
                 //Passing original $dataset to add/delete from target values
                 
                 //Passing custom % deliberately to apply the custom algorithm
@@ -202,7 +204,7 @@ class AuditControllerOutbound extends Controller
 
                 $finalArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);
                 $UltimateArrayWithData = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
-                echo '<br/>Sizeof $UltimateArrayWithData:'.count($UltimateArrayWithData);
+                //echo '<br/>Sizeof $UltimateArrayWithData:'.count($UltimateArrayWithData);
                 // $dataset2 = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
                 // $dataset3 = $this->SwapTableIDAndIndex($dataset2);
 
@@ -213,7 +215,7 @@ class AuditControllerOutbound extends Controller
             }
             else{
                 //If one/two option in 1st layer & one/two option in 2nd layer is selected
-                echo "<br/>I am in custom in 1st layer & custom in 2nd layer:";
+                //echo "<br/>I am in custom in 1st layer & custom in 2nd layer:";
 
                 $UltimateArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);//With fixed delta
                 $UltimateArrayWithData = $this->getSelectedDataWithIndex($UltimateArray['dataset'], $dataset);
@@ -285,7 +287,7 @@ class AuditControllerOutbound extends Controller
 
             //Getting BIT wise operator
             $combination = $category_flag | $status_flag | $channel_flag;
-            echo '$combination:'.$combination;
+            //echo '$combination:'.$combination;
 
             switch($combination){
                 case 0: //We have validated this in UI
@@ -835,7 +837,7 @@ class AuditControllerOutbound extends Controller
     public function getFinalAllThreeCount($dataset, $fullDataset, $ticket_category, $ticket_status, $channel)
     {
         //$this->getSelectedDataWithIndex();
-        echo 'I am inside getFinalCategoryCount';
+        //echo 'I am inside getFinalCategoryCount';
         //dd($dataset);
         
         //$this->printR($ticket_category, 0);
@@ -847,8 +849,8 @@ class AuditControllerOutbound extends Controller
         $ticket_category_ach = $ticket_category_ach['ticket_category'];
         
 
-        echo '<br/>initial achieve:';
-        $this->printR($ticket_category_ach, 0);
+        //echo '<br/>initial achieve:';
+        //$this->printR($ticket_category_ach, 0);
 
         $ticket_status_ach = $this->getStatusOnly($dataset, $ticket_status, $targetDelta = 1);
         $ticket_status_ach = $ticket_status_ach['ticket_status'];
@@ -906,7 +908,7 @@ class AuditControllerOutbound extends Controller
             // && $ticket_category['nqc']['tar']-$ticket_category['nqc']['ach_act'] 
         )
         {
-            echo "----------------------START loopcount: ".($loopCount+1)."--------------------------------";
+            //echo "----------------------START loopcount: ".($loopCount+1)."--------------------------------";
             $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
             $ticket_category_ach = $ticket_category_ach['ticket_category'];
             //echo '<br/>ticket_category_ach:';
@@ -1162,7 +1164,7 @@ class AuditControllerOutbound extends Controller
 
             $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
             $ticket_category_ach = $ticket_category_ach['ticket_category'];
-            $this->printR($ticket_category_ach, 0);
+            //$this->printR($ticket_category_ach, 0);
 
             
                     //STATUS check
@@ -1260,7 +1262,7 @@ class AuditControllerOutbound extends Controller
 
                     $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
                     $ticket_status_ach = $ticket_status_ach['ticket_status'];
-                    $this->printR($ticket_status_ach, 0);
+                    //$this->printR($ticket_status_ach, 0);
 
             //CHANNEL
             $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
@@ -1376,31 +1378,31 @@ class AuditControllerOutbound extends Controller
 
             $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
             $channel_ach = $channel_ach['channel'];
-            $this->printR($channel_ach, 0);
+            //$this->printR($channel_ach, 0);
 
             //$dataset = $modifiedDataset;
             $loopCount++;
-            echo '<br/>LoopCount:'.$loopCount;
+            //echo '<br/>LoopCount:'.$loopCount;
             //echo '<br/>Check modifiedDataset null:'.is_null($modifiedDataset);
             
             //Now get the modified counts
             //Ticket Category
             $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1);
             $ticket_category_ach = $ticket_category_ach['ticket_category'];
-            echo '<br/>ticket_category_ach: FINAL';
-            $this->printR($ticket_category_ach, 0);
+            // echo '<br/>ticket_category_ach: FINAL';
+            // $this->printR($ticket_category_ach, 0);
 
             //Ticket Status
             $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
             $ticket_status_ach = $ticket_status_ach['ticket_status'];
-            echo '<br/>ticket_status_ach: FINAL';
-            $this->printR($ticket_status_ach,0);
+            // echo '<br/>ticket_status_ach: FINAL';
+            // $this->printR($ticket_status_ach,0);
 
             //Channel
             $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
             $channel_ach = $channel_ach['channel'];
-            echo '<br/>channel_ach: FINAL';
-            $this->printR($channel_ach, 0);
+            // echo '<br/>channel_ach: FINAL';
+            // $this->printR($channel_ach, 0);
 
             //Add checkpoint, if all counts are achieved then break the loop
 
@@ -1410,7 +1412,7 @@ class AuditControllerOutbound extends Controller
                 break;
             }
 
-            echo "----------------------END loopcount: ".($loopCount)."--------------------------------";
+            //echo "----------------------END loopcount: ".($loopCount)."--------------------------------";
         }
         
         //exit;
@@ -1420,7 +1422,7 @@ class AuditControllerOutbound extends Controller
         //Check if any [ach_act] => 0 is 0 or not
         //$modifiedDataset1 = $this->checkAchieveZero($modifiedDataset, $fullDataset, $ticket_category, $ticket_status, $channel);
 
-        echo '<br/>Total LoopCount:'.$loopCount;
+        //echo '<br/>Total LoopCount:'.$loopCount;
 
         return $modifiedDataset;
     }
@@ -1430,7 +1432,8 @@ class AuditControllerOutbound extends Controller
     public function AddRemoveFromDataset($dataset, $fullDataset, $whatToRemove, $addRemoveCount, $addRemoveFlag, $additionalFlag)
     {
         $dataset = $this->SwapTableIDAndIndex($dataset);
-        echo '<br/>Before $dataset:'.count($dataset);
+        //echo '<br/>Before $dataset:'.count($dataset);
+        
         //echo '<br/>is_array:'.is_array($additionalFlag);
         
 
@@ -1704,7 +1707,8 @@ class AuditControllerOutbound extends Controller
 
             if (!empty($availableIndexes)) {
                 // Randomly select indexes from $fullDataset
-                echo "<br/>No of items to add for $subCat:".$addRemoveCount;
+                
+                //echo "<br/>No of items to add for $subCat:".$addRemoveCount;
 
                 $selectedIndexes = array_rand($availableIndexes, min($addRemoveCount, count($availableIndexes)));
     
@@ -1730,9 +1734,9 @@ class AuditControllerOutbound extends Controller
             //print_r($whatToRemove);
 
             //Remove from $datset
-            //Take 
-            //$this->printR($dataset,0);
-            echo "<br/>Delete for $subCat:".$addRemoveCount;
+            
+            //echo "<br/>Delete for $subCat:".$addRemoveCount;
+
             //$this->printR(self::$CategorykeyMappings,1);
 
             $removedCount = 0; // Counter for removed elements
