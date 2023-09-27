@@ -126,7 +126,7 @@
                  <thead>
                  <tr>
                    <th>TABLEID</th>
-                   <th>PARENTID</th>
+                   {{-- <th>PARENTID</th> --}}
                    <th>SO DATE</th>
                    <th>SO TICKET</th>
                    <th>MSISDN</th>
@@ -134,24 +134,46 @@
                    <th>CHANNEL(SOURCE)</th>
                    <th>CATEGORY</th>
                    <th>SUB CATEGORY</th>
-                   <th>SO OPENDATE</th>
                    <th>ALTERNATE CONTACT</th>
+
+                   <th>SO OPENDATE</th>
+                   
+                   <th>SO ASSIGNEDDATE</td>
+                   <th>SO REASSIGNEDDATE</td>
+                   <th>SO TECHNICALFEEDBACKDATE</td>
+                   <th>SO UNDERINVESTIGATIONDATE</td>
+                   <th>SO FOLLOWUPDATE</td>
+                   <th>SO NOTREACHEDDATE</td>
+                   <th>SO CLOSEDDATE</td>
+
+                   
+
                  </tr>
                  </thead>
                  <tbody>
+                  {{-- {{//dd($selectedSample)}} --}}
                    @foreach ($selectedSample as $ss)
                  <tr>
                    <td>{{$ss->tableID}}</td>
-                   <td>{{$ss->parentID}}</td>
+                   {{-- <td>{{$ss->parentID}}</td> //This is the parentID from data_ib_so_casedetailednew --}}
                    <td>{{$ss->reportdate}}</td>
                    <td>{{$ss->ID}}</td>
                    <td>{{$ss->MSISDN}}</td>
                    <td>{{$ss->STATUS}}</td>
                    <td>{{$ss->SOURCE}}</td>
                    <td>{{$ss->CATEGORY}}</td>
-                   <td>{{$ss->SUBCATEGORY }}</td>
-                   <td>{{$ss->OPENDATE }}</td>
+                   <td>{{$ss->{'SUB CATEGORY'} }}</td>
                    <td>{{$ss->ALTERNATECONTACT }}</td>
+                   <td>{{$ss->{'OPEN DATE'} }}</td>
+                  
+                   <td>{{$ss->ASSIGNEDDATE }}</td>
+                   <td>{{$ss->REASSIGNEDDATE }}</td>
+                   <td>{{$ss->TECHNICALFEEDBACKDATE }}</td>
+                   <td>{{$ss->UNDERINVESTIGATIONDATE }}</td>
+                   <td>{{$ss->FOLLOWUPDATE }}</td>
+                   <td>{{$ss->NOTREACHEDDATE }}</td>
+                   <td>{{$ss->CLOSEDDATE }}</td>
+
                  </tr>
                  @endforeach
                  

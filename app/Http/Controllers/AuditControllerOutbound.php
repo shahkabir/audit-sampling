@@ -78,7 +78,6 @@ class AuditControllerOutbound extends Controller
     {
         //dd($request->all());
 
-
         $auditPerAgent = $request->{'audit-per-agent'};
         $sampleSize = $request->{'no-of-agent'};
 
@@ -110,6 +109,7 @@ class AuditControllerOutbound extends Controller
 
         $dataset = $this->getDataSets($from, $to);
         //dd($dataset);
+        //dd(sizeof($dataset));
 
         //Check if dataset is empty or not
         if(empty($dataset)){
@@ -121,25 +121,24 @@ class AuditControllerOutbound extends Controller
 
         //Make the criteria arrays-
         $ticket_category = $this->makeTicketCategory($request);
-
         $ticket_status = $this->makeTicketStatus($request);
-
         $channel = $this->makeChannel($request);
 
         // $this->printR($ticket_category,0);
-
         // $this->printR($ticket_status,0);
-
         // $this->printR($channel,0);
 
         $category_flag_zero = $status_flag_zero = $channel_flag_zero = false;
-
         if(is_array($secondLayerFlag))
         {
             $category_flag_zero = ($secondLayerFlag['category_flag_zero'] == 1) ? true : false;
             $status_flag_zero = ($secondLayerFlag['status_flag_zero'] == 1) ? true : false;
             $channel_flag_zero = ($secondLayerFlag['channel_flag_zero'] == 1) ? true : false;
         }
+
+        $category_flag = ($flagArray['category_flag'] == 1) ? true : false;
+        $status_flag = ($flagArray['status_flag'] == 1) ? true : false;
+        $channel_flag = ($flagArray['channel_flag'] == 1) ? true : false;
 
         //Find Agents with Audit Count
         //Not feasible as we do not have any reference for agentID in SuperOffice tickets
@@ -148,29 +147,36 @@ class AuditControllerOutbound extends Controller
         $finalArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);
         
         //dd($finalArray);
-
-        if((sizeof($finalArray['dataset']) > $sampleSize) && ($category_flag_zero || $status_flag_zero || $channel_flag_zero))
+        //REMOVED-->($category_flag_zero || $status_flag_zero || $channel_flag_zero))
+        if(((sizeof($finalArray['dataset']) > $sampleSize) && ($category_flag_zero || $status_flag_zero || $channel_flag_zero)) 
+            || ($category_flag || $status_flag || $channel_flag) //it was & before
+        )
         //Will only process below if all 3 combinations are selected
         {
             echo 'I am inside condition:';
             //Apply same algorithm on filtered data
             $dataset2 = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
             $dataset3 = $this->SwapTableIDAndIndex($dataset2);
-            //echo '$dataset3:'.sizeof($dataset3);
-            //dd($dataset3);
+            
+            echo '$dataset3:'.sizeof($dataset3);
+            //exit();//dd($dataset3);
 
-            $UltimateArray = $this->SelectSample($dataset3, $ticket_category, $ticket_status, $channel, $flagArray);//With fixed delta
-            $UltimateArrayWithData = $this->getSelectedDataWithIndex($UltimateArray['dataset'], $dataset);
+            //Commented below lines as seems not needed any more
+            //Work here for improvement when one/two option in 1st layer & one/two option in 2nd layer is selected
+            //  $UltimateArray = $this->SelectSample($dataset3, $ticket_category, $ticket_status, $channel, $flagArray);//With fixed delta
+            //  $UltimateArrayWithData = $this->getSelectedDataWithIndex($UltimateArray['dataset'], $dataset);
+            $UltimateArrayWithData = $dataset2;
 
-            if($category_flag_zero && $status_flag_zero && $channel_flag_zero)
+            //ADDED--> (sizeof($finalArray['dataset']) > $sampleSize) || 
+            if(($category_flag_zero && $status_flag_zero && $channel_flag_zero))
             { //If all values are custom
-
+                echo "<br/>I am in 2nd level selection";
                 //Passing Full Dataset as $dataset for add/remove
                 //$getFinalCategoryCount = $this->getFinalCategoryCount($UltimateArrayWithData, $dataset, $ticket_category, $ticket_status, $channel);
                 $getFinalCategoryCount = $this->getFinalAllThreeCount($UltimateArrayWithData, $dataset3, $ticket_category, $ticket_status, $channel);
                 //$getFinalCategoryCount = $this->getFinalCategoryCount($dataset3, $dataset3, $ticket_category, $ticket_status, $channel);
                 //$getFinalCategoryCountWithData = $this->getSelectedDataWithIndex($getFinalCategoryCount, $dataset);
-                 //dd($getFinalCategoryCount);//Sometimes not add,delete is performed hence it is returned as is
+                //dd($getFinalCategoryCount);//Sometimes not add,delete is performed hence it is returned as is
                 $getFinalCategoryCount = $this->SwapTableIDAndIndex($getFinalCategoryCount);
                 //echo 'UltimateArray:';
                 //dd($UltimateArray);
@@ -180,11 +186,43 @@ class AuditControllerOutbound extends Controller
                 //$this->printR($UltimateArray,1);
                 
                 //$finalArray = $UltimateArray['dataset']; //$finalArray = $UltimateArray
-
                 $finalArray = array_keys($getFinalCategoryCount);
-            }else{
+
+            }else if($category_flag && $status_flag && $channel_flag)
+            { //If all values are 1st layer
+                echo "<br/>I am in 1st level selection";
+                //Passing original $dataset to add/delete from target values
+                
+                //Passing custom % deliberately to apply the custom algorithm
+                $secondLayerFlag = array(
+                    'category_flag_zero' => 1,
+                    'status_flag_zero' => 1,
+                    'channel_flag_zero' => 1
+                );
+
+                $finalArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);
+                $UltimateArrayWithData = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
+                echo '<br/>Sizeof $UltimateArrayWithData:'.count($UltimateArrayWithData);
+                // $dataset2 = $this->getSelectedDataWithIndex($finalArray['dataset'], $dataset);
+                // $dataset3 = $this->SwapTableIDAndIndex($dataset2);
+
+                $getFinalCategoryCount = $this->getFinalAllThreeCount($UltimateArrayWithData, $UltimateArrayWithData, $ticket_category, $ticket_status, $channel); //$dataset
+                $getFinalCategoryCount = $this->SwapTableIDAndIndex($getFinalCategoryCount);
+                
+                $finalArray = array_keys($getFinalCategoryCount);
+            }
+            else{
+                //If one/two option in 1st layer & one/two option in 2nd layer is selected
+                echo "<br/>I am in custom in 1st layer & custom in 2nd layer:";
+
+                $UltimateArray = $this->SelectSample($dataset, $ticket_category, $ticket_status, $channel, $flagArray, $secondLayerFlag);//With fixed delta
+                $UltimateArrayWithData = $this->getSelectedDataWithIndex($UltimateArray['dataset'], $dataset);
+                //dd($UltimateArrayWithData);
+                
+                //$getFinalCategoryCount = $this->getFinalAllThreeCount($UltimateArrayWithData, $dataset, $ticket_category, $ticket_status, $channel);
 
                 $getFinalCategoryCount = $this->SwapTableIDAndIndex($UltimateArrayWithData);
+                
                 $finalArray = array_keys($getFinalCategoryCount);
                 //dd($finalArray);
             }
@@ -225,11 +263,8 @@ class AuditControllerOutbound extends Controller
             // [channel_flag] => 1
             //echo '<br/>Dataset:'.sizeof($dataset);
             //$this->printR($dataset,0);
-
             // $this->printR($ticket_category,0);
-
             // $this->printR($ticket_status,0);
-
             // $this->printR($channel,0);
             //dd($flagArray);
 
@@ -810,7 +845,7 @@ class AuditControllerOutbound extends Controller
         //Getting counts only
         $ticket_category_ach = $this->getCategoryOnly($dataset, $ticket_category, $targetDelta = 1);
         $ticket_category_ach = $ticket_category_ach['ticket_category'];
-        //$ticket_category = $ticket_category_ach['ticket_category'];
+        
 
         echo '<br/>initial achieve:';
         $this->printR($ticket_category_ach, 0);
@@ -826,7 +861,7 @@ class AuditControllerOutbound extends Controller
         
         $modifiedDataset = $dataset;
 
-        $delta_per = 0.05;
+        $delta_per = 0.05;//0.05 which is 5%
         $loopCount = 0;
         
         while(
@@ -1350,7 +1385,7 @@ class AuditControllerOutbound extends Controller
             
             //Now get the modified counts
             //Ticket Category
-            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1); //$ticket_category
+            $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1);
             $ticket_category_ach = $ticket_category_ach['ticket_category'];
             echo '<br/>ticket_category_ach: FINAL';
             $this->printR($ticket_category_ach, 0);
@@ -1367,7 +1402,10 @@ class AuditControllerOutbound extends Controller
             echo '<br/>channel_ach: FINAL';
             $this->printR($channel_ach, 0);
 
-            if($loopCount == 5)
+            //Add checkpoint, if all counts are achieved then break the loop
+
+
+            if($loopCount == 20)
             {
                 break;
             }
@@ -1378,6 +1416,9 @@ class AuditControllerOutbound extends Controller
         //exit;
         //echo '<br/>final achieve before return';
         //$this->printR($ticket_category_ach, 0);
+
+        //Check if any [ach_act] => 0 is 0 or not
+        //$modifiedDataset1 = $this->checkAchieveZero($modifiedDataset, $fullDataset, $ticket_category, $ticket_status, $channel);
 
         echo '<br/>Total LoopCount:'.$loopCount;
 
@@ -1501,7 +1542,7 @@ class AuditControllerOutbound extends Controller
                                     }
 
                                     //if enabled then there is deviation, if not then outcome is more accurate
-                                    //return TRUE;
+                                    return TRUE;
 
                                 }else{
 
@@ -1517,6 +1558,8 @@ class AuditControllerOutbound extends Controller
                             //return isset($fullDataset[$index][$cat]) && $fullDataset[$index][$cat] === $keyMapping[$subCat];
 
                         }else if($cat === 'STATUS'){
+                            //echo "<br/>I am inside AddRemoveFromDataset with cat: $cat";
+
                             $ticket_category_ach = $additionalFlag['ticket_category_ach'];
                             $channel_ach = $additionalFlag['channel_ach'];
                             
@@ -1568,7 +1611,8 @@ class AuditControllerOutbound extends Controller
                                         }
                                     }
 
-                                    //return TRUE;
+                                    //if enabled then there is deviation, if not then outcome is more accurate
+                                    return TRUE;
 
                                 }else{
 
@@ -1604,7 +1648,7 @@ class AuditControllerOutbound extends Controller
                                 }
                             }
 
-                            // echo '<br/>Required Indexes:';
+                            // echo "<br/>Required Indexes in $cat:";
                             // $this->printR($required_indexes, 0);
 
                             if(isset($fullDataset[$index][$cat]))
@@ -1616,9 +1660,11 @@ class AuditControllerOutbound extends Controller
                                     {
                                         foreach($required_indexes as $ind)
                                         {
-                                            //echo '<br/>For CHANNEL,check $category:'.
+                                            //echo '<br/>For CHANNEL,check $category:';
                                             $category = (array_key_exists($ind, self::$CategorykeyMappings)) && ($fullDataset[$index]['CATEGORY'] === self::$CategorykeyMappings[$ind]);
-                                            //echo '<br/>For CHANNEL,check $status:'.
+                                            
+                                            //echo '<br/>For CHANNEL,check $status:';
+                                            //echo '<br/>$status:'.6
                                             $status = (array_key_exists($ind, self::$StatuskeyMappings) && ($fullDataset[$index]['STATUS'] === self::$StatuskeyMappings[$ind]));
 
                                             if($category && $status)
@@ -1631,7 +1677,8 @@ class AuditControllerOutbound extends Controller
                                         }
                                     }
 
-                                    //return TRUE;
+                                    //if enabled then there is deviation, if not then outcome is more accurate
+                                    return TRUE;
 
                                 }else{
 
@@ -1721,6 +1768,78 @@ class AuditControllerOutbound extends Controller
 
         //}
     }
+
+    public function checkAchieveZero($modifiedDataset, $fullDataset, $ticket_category, $ticket_status, $channel)
+    {
+        echo "<br/> I am in checkAchieveZero:----------------------------------------------------------------";
+        //$this->printR($ticket_category,0);
+
+        $ticket_category_ach = $this->getCategoryOnly($modifiedDataset, $ticket_category, $targetDelta = 1);
+        $ticket_category_ach = $ticket_category_ach['ticket_category'];
+
+        $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+        $ticket_status_ach = $ticket_status_ach['ticket_status'];
+
+        $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+        $channel_ach = $channel_ach['channel'];
+
+        $this->printR($ticket_category_ach,0);
+        $this->printR($ticket_status_ach,0);
+        $this->printR($channel_ach,0);
+
+        
+        //$this->printR($modifiedDataset,0);
+
+        //CATEGORY
+        foreach($ticket_category_ach as $tc=>$val)
+        {
+            if($val['tar']>0 && $val['ach_act'] == 0)
+            {
+                //echo "<br/>Adding for $tc";
+                $addCount = 1;
+                $additionalFlag = array('ticket_status_ach'=>$ticket_status_ach, 'channel_ach'=>$channel_ach);
+                echo '$whatToAdd'.$whatToAdd = 'CATEGORY|'.$tc;
+                $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToAdd, $addCount, TRUE, $additionalFlag);
+            }
+        }
+        
+        //STATUS
+        $ticket_status_ach = $this->getStatusOnly($modifiedDataset, $ticket_status, $targetDelta = 1);
+        $ticket_status_ach = $ticket_status_ach['ticket_status'];
+
+        foreach($ticket_status_ach as $ts=>$val)
+        {
+            if($val['tar']>0 && $val['ach_act'] == 0)
+            {
+                $addCount = 1;
+                $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'channel_ach'=>$channel_ach);
+                echo '$whatToAdd'.$whatToAdd = 'STATUS|'.$ts;
+                $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToAdd, $addCount, TRUE, $additionalFlag);
+            }
+        }
+
+
+        //CHANNEL
+        $channel_ach = $this->getChannelOnly($modifiedDataset, $channel, $targetDelta = 1);
+        $channel_ach = $channel_ach['channel'];
+
+        foreach($channel as $ch=>$val)
+        {
+            if($val['tar']>0 && $val['ach_act'] == 0)
+            {
+                $addCount = 1;
+                $additionalFlag = array('ticket_category_ach'=>$ticket_category_ach, 'ticket_status_ach'=>$ticket_status_ach);
+                echo '$whatToAdd'.$whatToAdd = 'SOURCE|'.$ch;
+                $modifiedDataset = $this->AddRemoveFromDataset($modifiedDataset, $fullDataset, $whatToAdd, $addCount, TRUE, $additionalFlag);
+            }
+        }
+        
+        dd($modifiedDataset);
+
+        return $modifiedDataset;
+
+    }
+
 
     public function makeTicketCategory($request)
     {

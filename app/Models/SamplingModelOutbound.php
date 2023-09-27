@@ -85,8 +85,40 @@ class SamplingModelOutbound extends Model
             and a.MSISDN <> 0
             and a.pickupFlag = 0
             and a.STATUS <> 'Not Reached'";
+            
+            //, `ASSIGNEDDATE`, `REASSIGNEDDATE`, `TECHNICALFEEDBACKDATE`, `UNDERINVESTIGATIONDATE`, `FOLLOWUPDATE`, `NOTREACHEDDATE`, `CLOSEDDATE`
+            // , a.ASSIGNEDDATE, a.REASSIGNEDDATE, a.TECHNICALFEEDBACKDATE, a.UNDERINVESTIGATIONDATE, a.FOLLOWUPDATE, a.NOTREACHEDDATE, a.CLOSEDDATE
+
+            /*$sql_insert_tmp = "
+            insert into tmp_data_ib_so_casedetailednew (parentID,pickupFlag,reportdate,ID,MSISDN,STATUS,SOURCE,CATEGORY,`SUBCATEGORY`,`OPENDATE`,`ALTERNATECONTACT`, `ASSIGNEDDATE`, `REASSIGNEDDATE`, `TECHNICALFEEDBACKDATE`, `UNDERINVESTIGATIONDATE`, `FOLLOWUPDATE`, `NOTREACHEDDATE`, `CLOSEDDATE`)
+            SELECT
+            a.tableID,
+            a.pickupFlag,
+            a.reportdate,
+            a.ID,
+            a.MSISDN,
+            a.STATUS,
+            a.SOURCE,
+            a.CATEGORY,
+            a.`SUB CATEGORY`,
+            IF(a.`OPEN DATE` = '0000-00-00 00:00:00', NULL, a.`OPEN DATE`) AS `OPEN DATE`,
+            a.ALTERNATECONTACT,
+            IF(a.ASSIGNEDDATE = '0000-00-00 00:00:00', NULL, a.ASSIGNEDDATE) AS ASSIGNEDDATE,
+            IF(a.REASSIGNEDDATE = '0000-00-00 00:00:00', NULL, a.REASSIGNEDDATE) AS REASSIGNEDDATE,
+            IF(a.TECHNICALFEEDBACKDATE = '0000-00-00 00:00:00', NULL, a.TECHNICALFEEDBACKDATE) AS TECHNICALFEEDBACKDATE,
+            IF(a.UNDERINVESTIGATIONDATE = '0000-00-00 00:00:00', NULL, a.UNDERINVESTIGATIONDATE) AS UNDERINVESTIGATIONDATE,
+            IF(a.FOLLOWUPDATE = '0000-00-00 00:00:00', NULL, a.FOLLOWUPDATE) AS FOLLOWUPDATE,
+            IF(a.NOTREACHEDDATE = '0000-00-00 00:00:00', NULL, a.NOTREACHEDDATE) AS NOTREACHEDDATE,
+            IF(a.CLOSEDDATE = '0000-00-00 00:00:00', NULL, a.CLOSEDDATE) AS CLOSEDDATE
+        FROM
+            data_ib_so_casedetailednew a
+        WHERE
+            a.reportdate BETWEEN STR_TO_DATE('$from', '%m/%d/%Y') AND STR_TO_DATE('$to', '%m/%d/%Y')
+            AND a.MSISDN <> 0
+            AND a.pickupFlag = 0
+            AND a.STATUS <> 'Not Reached'";*/
             //excluding not reached
-         
+
         $results = DB::select($sql_insert_tmp);
 
         //Now fetch from tmp table
@@ -131,7 +163,11 @@ class SamplingModelOutbound extends Model
                         ->update(['pickupFlag' => '1']);
 
         //select data which has parentIDs
-        $results = DB::table('tmp_data_ib_so_casedetailednew')->whereIn('parentID',$finalArray)->get();
+        //$results = DB::table('tmp_data_ib_so_casedetailednew')->whereIn('parentID',$finalArray)->get();
+        //dd($finalArray);
+
+        //Showing from live table as we need to show all the dates
+        $results = DB::table('data_ib_so_casedetailednew')->whereIn('tableID',$finalArray)->get();
 
         return $results;
     }

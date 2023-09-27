@@ -553,16 +553,16 @@
         var chTotal = parseInt($('#ch-total').val(), 10);
         var catTotal = parseInt($('#ticket-total').val(), 10);
 
-        if(catTotal !== auditTarget){
-          event.preventDefault(); // Prevent form submission
-          alert("Ticket Category total is not equal to Sample Size value.");
-        }else if(chTotal !== auditTarget){
-          event.preventDefault(); // Prevent form submission
-          alert("Channel total is not equal to Sample Size value.");
-        }else if(tsTotal !== auditTarget){
-          event.preventDefault(); // Prevent form submission
-          alert("Ticket Status total is not equal to Sample Size value.");
-        }
+        // if(catTotal !== auditTarget){
+        //   event.preventDefault(); // Prevent form submission
+        //   alert("Ticket Category total is not equal to Sample Size value.");
+        // }else if(chTotal !== auditTarget){
+        //   event.preventDefault(); // Prevent form submission
+        //   alert("Channel total is not equal to Sample Size value.");
+        // }else if(tsTotal !== auditTarget){
+        //   event.preventDefault(); // Prevent form submission
+        //   alert("Ticket Status total is not equal to Sample Size value.");
+        // }
 
     });
 
