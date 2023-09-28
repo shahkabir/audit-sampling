@@ -88,13 +88,13 @@ class AuditControllerOutbound extends Controller
             return redirect()->route('login')->withErrors(['Session timed out, please login again.']);
         }
 
-         //Check if currently anyone is already processing a request in booking table
-         //$bookingStatus = SamplingModelOutbound::bookingStatusCheck('OB');
-         $bookingStatus = NULL; //Uncomment this line
-         if(!empty($bookingStatus))
-         {
-            return redirect()->route('generate-outbound')->withErrors(['Another user is already processing a request, please try again after sometime.']);
-         } 
+        //Check if currently anyone is already processing a request in booking table
+        $bookingStatus = SamplingModelOutbound::bookingStatusCheck('OB');
+        //$bookingStatus = NULL; //Uncomment this line
+        if(!empty($bookingStatus))
+        {
+           return redirect()->route('generate-outbound')->withErrors(['Another user is already processing a request, please try again after sometime.']);
+        } 
 
          //dd('i am here');
 
@@ -117,7 +117,7 @@ class AuditControllerOutbound extends Controller
         }
 
         //Set booking & booking_history table //uncomment below line
-        //SamplingModelOutbound::bookingUpdate($assignedBy, 'OB', $from, $to);
+        SamplingModelOutbound::bookingUpdate($assignedBy, 'OB', $from, $to);
 
         //Make the criteria arrays-
         $ticket_category = $this->makeTicketCategory($request);
