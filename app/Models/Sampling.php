@@ -80,7 +80,7 @@ class Sampling extends Model
         }else{
             $query = "  select a.*,b.count_till_date,b.audit_target_in_per from wc as a 
                         left join wc_summary as b on a.cwc=b.wc
-                        where b.date_of_summary=curdate()-1"; //should be curdate()-1
+                        where b.date_of_summary = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"; //should be curdate()-1
         }
         $results = DB::select($query);
 
@@ -118,10 +118,11 @@ class Sampling extends Model
         //This query result will not show any data from 00 till 07hrs for a particular date
         $query = "  select wc,`query`,count_till_date,audit_target_in_per,b.target_per
                     from wc_summary a left join wc b on a.wc=b.cwc
-                    where date_of_summary = curdate()-1
+                    where date_of_summary = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
                     and audit_target_in_per >0.00
                     order by count_till_date desc";//category
                     //need to update to curdate()-1
+                    //curdate()-1
                     //'2023-07-22'
 
         $results = DB::select($query);
@@ -247,7 +248,7 @@ class Sampling extends Model
     {
         $query = "select generated_by, isAssigned, a.created_at from sampling_generation_history a 
         inner join users b on a.generated_by=b.email
-        where date(a.created_at)=curdate()
+        where date(a.created_at)= DATE_SUB(CURDATE(), INTERVAL 0 DAY)
         and b.userType=(select userType from users where email='$assignedBy')
         and a.isAssigned=1
         order by a.created_at desc
@@ -484,19 +485,33 @@ class Sampling extends Model
 
     public static function getAuditCountByAgents($userType)
     {
-        $query = "
-        select ag.agentid, count(*) cnt from 
+        // $query = "
+        // select ag.agentid, count(*) cnt from 
+        // (
+        //     select agentid from `qain3`.calleval_qa
+        //     where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
+        //     and user_id in (select distinct(user_id) from `qain3`.users where AgentType='$userType')
+        //     union all
+        //     select agentid from `qain3`.calleval_tl
+        //     where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
+        //     and user_id in (select distinct(user_id) from `qain3`.users where AgentType='$userType')
+        // ) as ag
+        // group by ag.agentid
+        // order by cnt desc"; //CURDATE()-1
+        
+        //Considering yyyy-mm-01 till yyyy-mm-last of previous month when executed on 01-day of current month
+        $query = "select ag.agentid, count(*) cnt from 
         (
             select agentid from `qain3`.calleval_qa
-            where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
+            where `date` BETWEEN DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y-%m-01') AND DATE_SUB(CURDATE(), INTERVAL 1 DAY)
             and user_id in (select distinct(user_id) from `qain3`.users where AgentType='$userType')
             union all
             select agentid from `qain3`.calleval_tl
-            where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
+            where `date` BETWEEN DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y-%m-01') AND DATE_SUB(CURDATE(), INTERVAL 1 DAY)
             and user_id in (select distinct(user_id) from `qain3`.users where AgentType='$userType')
         ) as ag
         group by ag.agentid
-        order by cnt desc"; //CURDATE()-1
+        order by cnt desc";
 
         $results = DB::select($query);
 
