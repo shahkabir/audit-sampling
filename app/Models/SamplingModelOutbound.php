@@ -142,9 +142,9 @@ class SamplingModelOutbound extends Model
         $query = "
         select ag.agentid, count(*) cnt from 
         (
-            select agentid from `qaoutbound-uat`.calleval_new
+            select agentid from `qaoutbound`.calleval_new
             where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
-            and userid in (select distinct(userid) from `qaoutbound-uat`.users where AgentType='$userType')
+            and userid in (select distinct(userid) from `qaoutbound`.users where AgentType='$userType')
         ) as ag
         group by ag.agentid
         order by cnt desc"; //CURDATE()-1
@@ -175,7 +175,7 @@ class SamplingModelOutbound extends Model
     public static function GetUserList($user)
     {
         //UAT database
-        $sql = "select distinct(userid) from `qaoutbound-uat`.`users`
+        $sql = "select distinct(userid) from `qaoutbound`.`users`
 		where user_type='1'
 		and AgentType='$user'";      
 
@@ -203,7 +203,7 @@ class SamplingModelOutbound extends Model
         $str = "'".$str."'";
         //dd($str);
 
-        $sql = "select distinct(userid) from `qaoutbound-uat`.`users`
+        $sql = "select distinct(userid) from `qaoutbound`.`users`
 		where userid in ($str)";
 
         $users = DB::select($sql);
@@ -442,10 +442,10 @@ class SamplingModelOutbound extends Model
     {
         $query = "
        
-            select count(*) totalAuditedCalls from `qaoutbound-uat`.calleval_new
+            select count(*) totalAuditedCalls from `qaoutbound`.calleval_new
             where `date` BETWEEN DATE_FORMAT(CURDATE(), '%Y-%m-01') AND CURDATE()-1
             and agentid = '$agentid'
-            and userid in (select distinct(userid) from `qaoutbound-uat`.users where AgentType='$userType')
+            and userid in (select distinct(userid) from `qaoutbound`.users where AgentType='$userType')
         
        "; //CURDATE()-1
 
